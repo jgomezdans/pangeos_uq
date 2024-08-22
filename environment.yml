@@ -1,0 +1,24 @@
+name: pangeos_uq
+channels:
+    - jgomezdans
+    - conda-forge
+dependencies:
+    - python<=3.11
+    - numpy
+    - scipy
+    - jupyter
+    - matplotlib
+    - seaborn
+    - ipywidgets
+    - ipykernel
+    - ipympl
+    - ipywidgets
+    - ipyleaflet
+    - h5py
+    - pandas
+    - tqdm
+    - prosail
+    - pip
+    - pip:
+        - pcse
+        - git+https://github.com/jgomezdans/gp_emulator
