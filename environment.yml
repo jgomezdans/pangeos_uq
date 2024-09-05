@@ -6,7 +6,7 @@ dependencies:
     - python<=3.11
     - numpy
     - scipy
-    - jupyter
+    - jupyterlab
     - matplotlib
     - seaborn
     - ipywidgets
