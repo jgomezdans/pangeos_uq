@@ -1,0 +1,47 @@
+package:
+  name: pangeos_uq
+  version: "0.1.0"
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: |
+    {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+    {{ PYTHON }} -m pip install git+https://github.com/jgomezdans/prosail.git
+
+requirements:
+  host:
+    - python >=3.11
+    - pip
+  run:
+    - python >=3.11
+    - numpy
+    - pandas
+    - scipy
+    - h5py
+    - ipywidgets
+    - ipython
+    - matplotlib
+    - prosail
+    - seaborn
+    - pip  # Add pip to runtime to use it for installation
+
+test:
+  commands:
+    - echo "No test for pangeos_uq"
+
+about:
+  home: "https://github.com/jgomezdans/pangeos_uq"
+  license: MIT
+  license_file: LICENSE
+  summary: "PANGEOS Uncertainty Quantification workshop tools"
+  description: |
+    PANGEOS Uncertainty Quantification workshop tools.
+  author: Jose Gomez-Dans
+  email: jose.gomez-dans@kcl.ac.uk
+
+extra:
+  recipe-maintainers:
+    - jgomezdans

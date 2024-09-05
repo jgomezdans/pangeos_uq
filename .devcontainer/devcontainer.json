@@ -1,0 +1,18 @@
+{
+  "name": "Python (Conda with JupyterLab)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "python.pythonPath": "/usr/local/conda/bin/python"
+  },
+  "forwardPorts": [8888],
+  "extensions": [
+    "ms-python.python",
+    "ms-toolsai.jupyter"
+  ],
+  "postCreateCommand": "conda env update --file environment.yml && conda clean -afy && jupyter lab --generate-config",
+  "remoteUser": "vscode",
+  "onCreateCommand": "jupyter lab --ip 0.0.0.0 --port 8888 --no-browser --allow-root --NotebookApp.token=''"
+}
+
