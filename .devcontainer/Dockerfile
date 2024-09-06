@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/vscode/devcontainers/python:3
+FROM mcr.microsoft.com/vscode/devcontainers/anaconda:0-3
 
 # Set environment variables
 ENV PATH /usr/local/conda/bin:$PATH
