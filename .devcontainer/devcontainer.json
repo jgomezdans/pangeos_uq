@@ -7,9 +7,9 @@
     }
   },
   "forwardPorts": [8888],
-  "onCreateCommand": "conda env create -f environment.yml && echo 'conda activate pangeos_uq' >> ~/.bashrc",
-  "postCreateCommand": "conda init && conda activate pangeos_uq",
-  "postStartCommand": "conda activate pangeos_uq && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root",
+  "onCreateCommand": "conda env create -f environment.yml && conda init && echo 'conda activate pangeos_uq' >> ~/.bashrc",
+  "postCreateCommand": "/bin/bash -c 'source ~/.bashrc && conda activate pangeos_uq'",
+  "postStartCommand": "/bin/bash -c 'source ~/.bashrc && conda activate pangeos_uq && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root'",
   "customizations": {
     "vscode": {
       "extensions": [
