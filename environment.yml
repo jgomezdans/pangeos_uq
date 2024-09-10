@@ -18,6 +18,7 @@ dependencies:
     - pandas
     - tqdm
     - prosail
+    - pangeos_uq
     - pip
     - pip:
         - pcse
