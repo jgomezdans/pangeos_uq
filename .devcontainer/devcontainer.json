@@ -1,20 +1,45 @@
-{
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "hostRequirements": {
-    "cpus": 4
-  },
-  "waitFor": "onCreateCommand",
-  "updateContentCommand": "python3 -m pip install -r requirements.txt",
-  "postCreateCommand": "",
-  "customizations": {
-    "codespaces": {
-      "openFiles": []
-    },
-    "vscode": {
-      "extensions": [
-        "ms-toolsai.jupyter",
-        "ms-python.python"
-      ]
-    }
-  }
-}
+name: Conda and Jupyter Lab
+
+# Specify the base image to use, based on conda and Ubuntu
+image: mcr.microsoft.com/devcontainers/miniconda:0-3
+
+# Set any variables you need for Conda
+# You can include environment variables for further customizations if needed
+variables:
+  CONDA_ENV_NAME: your-env-name
+
+# Features to install
+features:
+  - ghcr.io/devcontainers/features/python:1
+    version: "3.9"  # Set Python version (change as necessary)
+
+# Optional container-specific settings
+settings:
+  terminal.integrated.defaultProfile.linux: bash
+
+# The onCreateCommand and postCreateCommand set up your conda environment and dependencies
+onCreateCommand: |
+  conda env create -f environment.yml && \
+  echo "source activate ${CONDA_ENV_NAME}" >> ~/.bashrc
+
+postCreateCommand: |
+  conda activate ${CONDA_ENV_NAME}
+
+# Forward port 8888 for Jupyter Lab
+forwardPorts:
+  - 8888
+
+# Run Jupyter Lab on start, listening on all interfaces (0.0.0.0) and port 8888
+postStartCommand: |
+  conda activate ${CONDA_ENV_NAME} && \
+  jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+
+# Optionally specify any extensions for VSCode in the container
+customizations:
+  vscode:
+    extensions:
+      - ms-python.python
+      - ms-toolsai.jupyter
+
+# Specify container user permissions and settings
+remoteUser: vscode
