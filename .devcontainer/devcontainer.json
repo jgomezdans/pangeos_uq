@@ -1,18 +1,20 @@
 {
-  "name": "Python (Conda with JupyterLab)",
-  "build": {
-    "dockerfile": "Dockerfile"
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "hostRequirements": {
+    "cpus": 4
   },
-  "settings": {
-    "python.pythonPath": "/usr/local/conda/bin/python"
-  },
-  "forwardPorts": [8888],
-  "extensions": [
-    "ms-python.python",
-    "ms-toolsai.jupyter"
-  ],
-  "postCreateCommand": "conda env update --file environment.yml && conda clean -afy && jupyter lab --generate-config",
-  "remoteUser": "vscode",
-  "onCreateCommand": "jupyter lab --ip 0.0.0.0 --port 8888 --no-browser --allow-root --NotebookApp.token=''"
+  "waitFor": "onCreateCommand",
+  "updateContentCommand": "python3 -m pip install -r requirements.txt",
+  "postCreateCommand": "",
+  "customizations": {
+    "codespaces": {
+      "openFiles": []
+    },
+    "vscode": {
+      "extensions": [
+        "ms-toolsai.jupyter",
+        "ms-python.python"
+      ]
+    }
+  }
 }
-
