@@ -17,7 +17,7 @@
 	"forwardPorts": [8888],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "python --version",
+	"postCreateCommand": "python --version && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token=''",
 
 	// Configure tool-specific properties.
   "customizations": {
