@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 from scipy import stats
+from tqdm import tqdm
 # MCMC MH sampler code. Lifted from
 # https://github.com/tdhopper/mcmc/blob/master/Metropolis-Hastings%20Algorithm.ipynb
 
@@ -18,13 +19,22 @@ def transition(current_state, logpdf, dim):
 
 
 def generate_samples(initial_state, num_iterations, logpdf):
+    """
+    Generate samples using the MCMC MH algorithm.
+
+    Args:
+        initial_state (array-like): Initial state for the MCMC chain.
+        num_iterations (int): Number of iterations to perform.
+        logpdf (callable): A function that computes the log probability
+                            density.
+
+    Yields:
+        array-like: The next state in the MCMC chain.
+    """
     current_state = initial_state
+    dim = 1 if isinstance(current_state, (float, int)) else len(current_state)
 
-    if isinstance(current_state, float) or isinstance(current_state, int):
-        dim = 1
-    else:
-        dim = len(current_state)
-
-    for i in range(num_iterations):
+    # Wrap the loop in tqdm to show progress
+    for _ in tqdm(range(num_iterations), desc="Sampling"):
         current_state = transition(current_state, logpdf, dim)
         yield current_state
