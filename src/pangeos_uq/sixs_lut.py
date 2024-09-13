@@ -36,7 +36,7 @@ SENTINEL_2_CENTER_WAVELENGTHS = [
 
 
 class LUTQuery:
-    def __init__(self, hdf5_path: str | None = None, k: int = 1):
+    def __init__(self, hdf5_path: str | None = None, k: int = 10):
         """
         Initialize the LUTQuery object.
 
@@ -148,19 +148,33 @@ class LUTQuery:
         n_wavelengths = len(SENTINEL_2_CENTER_WAVELENGTHS)
         # Perform the KNN search
         distances, indices = self.index.query(query_point, k=self.k)
+        # Call the interpolation function to compute the interpolated values
+        interpolated_result = interpolate_coefficients(
+            distances[0],  # Use first row of distances
+            indices[0],  # Use first row of indices
+            self.lut_data,  # The LUT data
+            self.zero_wv_indices,  # Precomputed indices for
+            # the zero-wavelength condition
+        )
 
-        # Extract the corresponding data for the nearest neighbours
-        idx = indices[0][0]
-        # Use precomputed indices to find the start index
-        start_idx = self.zero_wv_indices[idx]
-        end_idx = start_idx + n_wavelengths  # Select N rows starting from
-
+        # Return the interpolated results along with the wavebands
         result = {
-            "wv": self.lut_data["wv"][start_idx:end_idx],
-            "xap": self.lut_data["xap"][start_idx:end_idx],
-            "xb": self.lut_data["xb"][start_idx:end_idx],
-            "xc": self.lut_data["xc"][start_idx:end_idx],
+            "wv": self.lut_data["wv"][self.zero_wv_indices[:n_wavelengths]],
+            **interpolated_result,
         }
+
+        # # Extract the corresponding data for the nearest neighbours
+        # idx = indices[0][0]
+        # # Use precomputed indices to find the start index
+        # start_idx = self.zero_wv_indices[idx]
+        # end_idx = start_idx + n_wavelengths  # Select N rows starting from
+
+        # result = {
+        #     "wv": self.lut_data["wv"][start_idx:end_idx],
+        #     "xap": self.lut_data["xap"][start_idx:end_idx],
+        #     "xb": self.lut_data["xb"][start_idx:end_idx],
+        #     "xc": self.lut_data["xc"][start_idx:end_idx],
+        # }
 
         return result
 
@@ -187,12 +201,10 @@ def interpolate_coefficients(
     Returns:
     Dict[str, np.ndarray]: Interpolated values for each waveband.
     """
-
+    n_wavelengths = len(SENTINEL_2_CENTER_WAVELENGTHS)
     # Inverse distances to use as weights (smaller distance => higher weight)
     inverse_distances = 1.0 / distances
     normalized_weights = inverse_distances / np.sum(inverse_distances)
-
-    n_wavelengths = len(lut_data["wv"][zero_wv_indices])
 
     # Prepare the result dictionary for the interpolated values
     interpolated_results = {
