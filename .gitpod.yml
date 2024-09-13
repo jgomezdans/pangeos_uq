@@ -10,6 +10,7 @@ tasks:
       source ~/miniforge3/bin/activate
       conda init bash
 
+      rm -f Miniforge3-Linux-x86_64.sh
       echo "Creating conda environment..."
       conda env create -f environment.yml || echo "Failed to create conda environment"
 
@@ -24,6 +25,7 @@ tasks:
       echo "Activating conda environment and starting Jupyter Lab..."
       source ~/miniforge3/bin/activate
       conda activate pangeos_uq
+      cd notebooks
       jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
 
 ports:
