@@ -3,7 +3,7 @@
 image: gitpod/workspace-base
 
 tasks:
-- name: install mamba and earlgrey
+- name: install mamba and pangrelos
   init: |
     curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
     bash Mambaforge-$(uname)-$(uname -m).sh -b -p /workspace/conda && rm Mambaforge-$(uname)-$(uname -m).sh
