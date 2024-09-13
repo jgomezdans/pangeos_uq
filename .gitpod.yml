@@ -1,21 +1,38 @@
 # .gitpod.yml
 
 image:
-  file: .gitpod.Dockerfile
+  file: gitpod/workspace-base
 
 tasks:
-  - init: |
-      echo "Initializing workspace with Conda environment"
-      # Add Miniforge to the PATH
-      conda init bash
-      source /home/gitpod/.bashrc
-      export PATH=/home/gitpod/miniforge3/envs/pangeos_uq/bin:${PATH}
-      conda activate pangeos_uq
-      echo "Conda environment activated"
-    command: |
-      echo "Starting Jupyter Lab in the notebooks folder..."
-      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
+- name: install mamba and earlgrey
+  init: |
+    curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+    bash Mambaforge-$(uname)-$(uname -m).sh -b -p /workspace/conda && rm Mambaforge-$(uname)-$(uname -m).sh
+    /workspace/conda/bin/mamba init bash
+
+    source ${HOME}/.bashrc
+
+    mamba create -n pangeos_uq -c jgomezdans -f /workspace/pangeos_uq/environment.yml
+
+    mamba clean --all -y
+
+    mamba activate pangeos_uq
+
+    cd /workspace
+
+  command: |
+    /workspace/conda/bin/mamba init bash
+    source ~/.bashrc
+    mamba activate pangeos_uq
+    echo "Starting Jupyter Lab in the notebooks folder..."
+    jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
 
 ports:
   - port: 8888
     onOpen: open-browser
+
+github:
+  prebuilds:
+    # enable for the master/default branch (defaults to true)
+    master: true
+    # enable for all branches in this repo (defaults to false)
