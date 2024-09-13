@@ -10,6 +10,7 @@ import numpy as np
 from .prosail_funcs import call_prosail  # noqa F401
 from .mcmc import generate_samples  # noqa F401
 from .sixs_lut import LUTQuery  # noqa F401
+from .param_retrieval import BiophysicalRetrieval  # noqa F401
 
 with importlib.resources.path("pangeos_uq.data", "sensor_srf.npz") as f:
     tmp_file = np.load(f)

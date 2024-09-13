@@ -149,9 +149,8 @@ class LUTQuery:
         # Perform the KNN search
         distances, indices = self.index.query(query_point, k=self.k)
 
-        # Extract the corresponding data for the nearest neighbors
+        # Extract the corresponding data for the nearest neighbours
         idx = indices[0][0]
-
         # Use precomputed indices to find the start index
         start_idx = self.zero_wv_indices[idx]
         end_idx = start_idx + n_wavelengths  # Select N rows starting from
@@ -164,6 +163,53 @@ class LUTQuery:
         }
 
         return result
+
+
+def interpolate_coefficients(
+    distances: np.ndarray,
+    indices: np.ndarray,
+    lut_data: Dict[str, np.ndarray],
+    zero_wv_indices: np.ndarray,
+    coefficients: List[str] = ["xap", "xb", "xc"],
+) -> Dict[str, np.ndarray]:
+    """
+    Weighted interpolation for each coefficient using k nearest neighbours
+
+    Parameters:
+    distances (np.ndarray): Array of distances for the k nearest neighbours.
+    indices (np.ndarray): Array of indices for the k nearest neighbours.
+    lut_data (Dict[str, np.ndarray]): The LUT data containing the coefficients.
+    coefficients (List[str]): List of coefficient names to interpolate (e.g.,
+                        'xap', 'xb', 'xc').
+    zero_wv_indices (np.ndarray): Precomputed indices where the waveband is
+                    the first wavelength.
+
+    Returns:
+    Dict[str, np.ndarray]: Interpolated values for each waveband.
+    """
+
+    # Inverse distances to use as weights (smaller distance => higher weight)
+    inverse_distances = 1.0 / distances
+    normalized_weights = inverse_distances / np.sum(inverse_distances)
+
+    n_wavelengths = len(lut_data["wv"][zero_wv_indices])
+
+    # Prepare the result dictionary for the interpolated values
+    interpolated_results = {
+        coef: np.zeros(n_wavelengths) for coef in coefficients
+    }
+
+    # For each waveband (e.g., xap, xb, xc), perform interpolation
+    for coef in coefficients:
+        # Accumulate weighted values for the current waveband
+        for i, idx in enumerate(indices):
+            start_idx = zero_wv_indices[idx]
+            end_idx = start_idx + n_wavelengths
+            interpolated_results[coef] += (
+                lut_data[coef][start_idx:end_idx] * normalized_weights[i]
+            )
+
+    return interpolated_results
 
 
 def interpolate_results(
