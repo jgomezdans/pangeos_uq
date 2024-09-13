@@ -1,7 +1,6 @@
 # .gitpod.yml
 
-image:
-  file: gitpod/workspace-base
+image: gitpod/workspace-base
 
 tasks:
 - name: install mamba and earlgrey
