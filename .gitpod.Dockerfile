@@ -9,7 +9,7 @@ RUN wget https://github.com/conda-forge/miniforge/releases/latest/download/Minif
     && /home/gitpod/miniforge3/bin/conda init bash
 
 # Add Miniforge to the PATH
-ENV PATH="/home/gitpod/miniforge3/bin:$PATH"
+ENV PATH="/home/gitpod/miniforge3/envs/pangeos_uq/bin:$PATH"
 
 # Copy your environment.yml into the image
 COPY environment.yml /workspace/environment.yml
@@ -30,4 +30,4 @@ RUN mkdir -p /workspace/notebooks
 EXPOSE 8888
 
 # Start Jupyter Lab when the container starts in the notebooks folder
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--notebook-dir=/workspace/notebooks"]
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--notebook-dir=/workspace/pangeos_uq/notebooks"]

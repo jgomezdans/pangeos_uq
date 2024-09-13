@@ -7,12 +7,14 @@ tasks:
   - init: |
       echo "Initializing workspace with Conda environment"
       # Add Miniforge to the PATH
-      export PATH="/home/gitpod/miniforge3/bin:$PATH"
+      conda init bash
+      source /home/gitpod/.bashrc
+      export PATH=/home/gitpod/miniforge3/envs/pangeos_uq/bin:${PATH}
       conda activate pangeos_uq
       echo "Conda environment activated"
     command: |
       echo "Starting Jupyter Lab in the notebooks folder..."
-      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/notebooks
+      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
 
 ports:
   - port: 8888
