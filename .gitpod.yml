@@ -1,5 +1,3 @@
-# .gitpod.yml
-
 image: gitpod/workspace-full
 
 tasks:
@@ -23,6 +21,9 @@ tasks:
       
       echo "Prebuild complete"
     command: |
+      echo "Activating conda environment and starting Jupyter Lab..."
+      source ~/miniforge3/bin/activate
+      conda activate pangeos_uq
       jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
 
 ports:
@@ -32,4 +33,3 @@ ports:
 vscode:
   extensions:
     - ms-toolsai.jupyter
-    - ms-python.python
