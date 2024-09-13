@@ -1,0 +1,26 @@
+image:
+  file: .gitpod.Dockerfile
+
+tasks:
+  - name: Init Gitpod Workspace
+    init: |
+      pip3 install -r requirements.txt
+      conda install --yes -c jgomezdans pangeos_uq --solver=libmamba
+      conda clean --all --yes
+    command: |
+      echo "Running: $GITPOD_WORKSPACE_URL"
+      echo "Call 'gogo a' or 'gogo w' to edit nbgrader assignments or workshops."
+
+ports:
+  - name: Jupyter Notebook
+    port: 8888
+    onOpen: open-browser
+
+vscode:
+  extensions:
+    - eamodio.gitlens
+    - janisdd.vscode-edit-csv
+    - mechatroner.rainbow-csv
+    - ms-python.python
+    - ms-python.debugpy
+    
