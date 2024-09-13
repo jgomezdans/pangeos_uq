@@ -1,26 +1,23 @@
-image:
-  file: .gitpod.Dockerfile
-
 tasks:
-  - name: Init Gitpod Workspace
-    init: |
-      pip3 install -r requirements.txt
-      conda install --yes -c jgomezdans pangeos_uq --solver=libmamba
-      conda clean --all --yes
+  - init: |
+      # Set up environment
+      conda env create -f environment.yml
+      conda activate pangeos_uq
+      pip install -e .
     command: |
-      echo "Running: $GITPOD_WORKSPACE_URL"
-      echo "Call 'gogo a' or 'gogo w' to edit nbgrader assignments or workshops."
+      # Start JupyterLab
+      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
 
 ports:
-  - name: Jupyter Notebook
-    port: 8888
+  - port: 8888
     onOpen: open-browser
 
 vscode:
   extensions:
-    - eamodio.gitlens
-    - janisdd.vscode-edit-csv
-    - mechatroner.rainbow-csv
-    - ms-python.python
-    - ms-python.debugpy
-    
+    - ms-toolsai.jupyter
+
+# Pre-open the notebooks folder in Jupyter Lab
+onStart:
+  - command: |
+      mkdir -p /workspace/notebooks
+      jupyter lab --NotebookApp.notebook_dir=/workspace/notebooks
