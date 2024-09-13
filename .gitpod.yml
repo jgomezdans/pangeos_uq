@@ -6,6 +6,10 @@ image:
 tasks:
   - init: |
       echo "Initializing workspace with Conda environment"
+      # Add Miniforge to the PATH
+      export PATH="/home/gitpod/miniforge3/bin:$PATH"
+      conda activate pangeos_uq
+      echo "Conda environment activated"
     command: |
       echo "Starting Jupyter Lab in the notebooks folder..."
       jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/notebooks
