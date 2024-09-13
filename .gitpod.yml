@@ -1,24 +1,8 @@
 # .gitpod.yml
+
 image: gitpod/workspace-full
 
 tasks:
-  - init: |
-      echo "Activating conda environment"
-      source ~/miniforge3/bin/activate
-      conda activate pangeos_uq
-    command: |
-      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
-
-ports:
-  - port: 8888
-    onOpen: open-browser
-
-vscode:
-  extensions:
-    - ms-toolsai.jupyter
-
-prebuilds:
-  # Define prebuild tasks
   - init: |
       echo "Downloading and installing Miniforge..."
       wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
@@ -38,3 +22,14 @@ prebuilds:
       pip install -e . || echo "Failed to install package"
       
       echo "Prebuild complete"
+    command: |
+      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
+
+ports:
+  - port: 8888
+    onOpen: open-browser
+
+vscode:
+  extensions:
+    - ms-toolsai.jupyter
+    - ms-python.python
