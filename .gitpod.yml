@@ -11,7 +11,7 @@ tasks:
 
     source ${HOME}/.bashrc
 
-    mamba create -n pangeos_uq -c jgomezdans -f /workspace/pangeos_uq/environment.yml
+    mamba env create  --file /workspace/pangeos_uq/environment.yml
 
     mamba clean --all -y
 
@@ -30,8 +30,3 @@ ports:
   - port: 8888
     onOpen: open-browser
 
-github:
-  prebuilds:
-    # enable for the master/default branch (defaults to true)
-    master: true
-    # enable for all branches in this repo (defaults to false)
