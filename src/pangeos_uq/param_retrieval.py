@@ -102,7 +102,7 @@ class BiophysicalRetrieval:
         self.inv_obs_cov = None
 
     def simulate_reflectance(
-        self, cov_matrix: np.ndarray | None = None
+        self, x: np.ndarray | None = None, cov_matrix: np.ndarray | None = None
     ) -> np.ndarray:
         """
         Simulates spectral reflectance with optional noise.
@@ -128,11 +128,14 @@ class BiophysicalRetrieval:
         Returns:
             float: The computed cost value.
         """
-        x_full = self.x.copy()
+        x_full = np.array(self.x.copy())
         posns = np.array([0, 1, 4, 5, 6, 7, 8, 9, 10])
         x_full[posns] = x
 
-        wvc, rho_canopy_sim = self.simulate_reflectance(x_full)
+        rho_canopy_sim = simulate_spectral_reflectance(x_full, cov_matrix=None)
+        _, rho_canopy_sim = integrate_spectral_reflectance(
+            rho_canopy_sim, self.srf
+        )
         diff = self.boa_reflectance_mean - rho_canopy_sim
         obs_cost = -0.5 * diff.T @ self.inv_obs_cov @ diff
         prior_cost = self.prior(x)
@@ -142,10 +145,14 @@ class BiophysicalRetrieval:
         """
         Propagates simulated reflectance to TOA using the look-up table (LUT).
         """
-        self.toa_reflectance = propagate_to_toa(
+        toa_reflectance = propagate_to_toa(
             self.boa_reflectance_sim,
             self.geometry,
             self.atmospheric_parameters,
+        )
+        sigma = toa_reflectance * 0.03  # 3% error
+        self.toa_reflectance = (
+            toa_reflectance + np.random.randn(*toa_reflectance.shape) * sigma
         )
 
     def correct_to_boa(self) -> np.ndarray:
@@ -161,8 +168,10 @@ class BiophysicalRetrieval:
         self.obs_cov = np.cov(
             self.boa_reflectance_ensemble - self.boa_reflectance_mean,
             rowvar=False,
+        ) + np.diag(np.ones(len(self.wvc)) * 0.05**2)
+        self.obs_corr = np.corrcoef(
+            (self.boa_reflectance_ensemble - self.boa_reflectance_mean).T,
         )
-        print(self.obs_cov, np.linalg.det(self.obs_cov))
         L = np.linalg.cholesky(self.obs_cov)
         # First solve L * y = I, where I is the identity matrix
         identity_matrix = np.eye(L.shape[0])
@@ -177,18 +186,23 @@ class BiophysicalRetrieval:
         Runs the MCMC sampling based on the prior and the simulated data.
         """
         initial_value = self.prior.mean
-        self.posterior_samples = list(
-            generate_samples(initial_value, n_samples, self.cost_function)
+        self.posterior_samples = np.array(
+            list(
+                generate_samples(initial_value, n_samples, self.cost_function)
+            )
         )
 
-    def visualize_results(self, posterior_samples: np.ndarray) -> None:
+    def plot_posterior(self, output_panel: widgets.Output) -> None:
         """
         Visualizes the results in two panels: Observations and Parameters.
         """
+        testme = np.random.random((500, 10))
         visualize_panels(
             self.toa_reflectance,
+            self.boa_reflectance_sim,
             self.boa_reflectance_ensemble,
-            self.posterior_samples,
+            testme,
+            output_panel,
         )
 
 
@@ -267,9 +281,7 @@ def propagate_to_toa(
     # Lambertian coupling correction using 6s coefficients
     numerator = reflectance + xb * (1 - reflectance * xc)
     denominator = xap * (1 - reflectance * xc)
-    rho_toa = numerator / denominator
-    y = xap * (rho_toa) - xb
-    return y / (1.0 + xc * y)
+    return numerator / denominator
 
 
 def uncertain_correct_to_boa(
@@ -296,7 +308,6 @@ def uncertain_correct_to_boa(
         np.random.randn(n_ensemble) * atmos_params.TCWV_unc + atmos_params.TCWV
     )
     rho_boa_ensemble = []
-    print(ens_aot.shape, ens_tcwv.shape)
     for aot, tcwv in zip(ens_aot, ens_tcwv):
         atmos_paramsx = atmos_params.LUT.query(
             geometry.vza, geometry.sza, geometry.raa, aot, tcwv
@@ -306,14 +317,17 @@ def uncertain_correct_to_boa(
         xb = np.delete(atmos_paramsx["xb"], 6)
         xc = np.delete(atmos_paramsx["xc"], 6)
         y = xap * toa_reflectance - xb
-        rho_boa_ensemble.append(y / (1.0 + xc * y))
+        rho_boa_corr = np.clip(y / (1.0 + xc * y), 0, 1)
+        rho_boa_ensemble.append(rho_boa_corr)
     return np.array(rho_boa_ensemble)
 
 
 def visualize_panels(
     toa_reflectance: np.ndarray,
+    boa_reflectance_sim: np.ndarray,
     boa_reflectance_ensemble: np.ndarray,
     posterior_samples: np.ndarray,
+    output_panel: widgets.Output,
 ) -> None:
     """
     Visualizes the observations and parameter distributions in two
@@ -338,16 +352,25 @@ def visualize_panels(
 
         # 1. Plot TOA reflectance
         axes[0, 0].plot(toa_reflectance, label="TOA Reflectance")
+
         axes[0, 0].set_title("Top-of-Atmosphere Reflectance")
         axes[0, 0].set_xlabel("Band")
         axes[0, 0].set_ylabel("Reflectance")
         axes[0, 0].legend()
 
         # 2. Plot BOA reflectance (mean of ensemble)
-        boa_mean = np.mean(boa_reflectance_ensemble, axis=0)
+        boa_mean = np.mean(np.atleast_2d(boa_reflectance_ensemble), axis=0)
         axes[0, 1].plot(
-            boa_mean, label="BOA Reflectance (Mean)", color="orange"
+            boa_reflectance_ensemble.T,
+            color="orange",
+            alpha=0.5,
         )
+        axes[0, 1].plot(
+            boa_reflectance_sim,
+            color="green",
+            label="Simulated BOA Reflectance",
+        )
+
         axes[0, 1].set_title("Bottom-of-Atmosphere Reflectance")
         axes[0, 1].set_xlabel("Band")
         axes[0, 1].set_ylabel("Reflectance")
@@ -356,7 +379,9 @@ def visualize_panels(
         # 3. Correlation matrix of BOA reflectance errors
         boa_errors = boa_reflectance_ensemble - boa_mean
         boa_corr = np.corrcoef(boa_errors.T)
-        im = axes[1, 0].imshow(boa_corr, cmap="coolwarm", interpolation="none")
+        im = axes[1, 0].imshow(
+            boa_corr, cmap="coolwarm", vmin=-1, vmax=1, interpolation="none"
+        )
         axes[1, 0].set_title("Correlation Matrix of BOA Reflectance Errors")
         fig.colorbar(im, ax=axes[1, 0])
 
@@ -442,6 +467,8 @@ def visualize_panels(
     tab = widgets.Tab([observations_tab, parameters_tab])
     tab.set_title(0, "Observations")
     tab.set_title(1, "Parameters")
-
-    # Display the tab widget in the notebook
-    display(tab)
+    # Remove prior tabs
+    output_panel.clear_output()
+    # Add the tab widget to the output panel
+    with output_panel:
+        display(tab)
