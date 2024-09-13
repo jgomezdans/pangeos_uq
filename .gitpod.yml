@@ -1,37 +1,17 @@
-image: gitpod/workspace-full
+# .gitpod.yml
+
+image:
+  file: .gitpod.Dockerfile
 
 tasks:
   - init: |
-      echo "Downloading and installing Miniforge..."
-      wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
-      bash Miniforge3-Linux-x86_64.sh -b -p ~/miniforge3
-
-      echo "Initializing conda..."
-      source ~/miniforge3/bin/activate
-      conda init bash
-
-      rm -f Miniforge3-Linux-x86_64.sh
-      echo "Creating conda environment..."
-      conda env create -f environment.yml || echo "Failed to create conda environment"
-
-      echo "Activating conda environment"
-      conda activate pangeos_uq
-
-      echo "Installing Python package"
-      pip install -e . || echo "Failed to install package"
-      
-      echo "Prebuild complete"
+      echo "Initializing workspace with Conda environment"
     command: |
-      echo "Activating conda environment and starting Jupyter Lab..."
-      source ~/miniforge3/bin/activate
-      conda activate pangeos_uq
-      cd notebooks
-      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
+      echo "Starting Jupyter Lab in the notebooks folder..."
+      jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/notebooks
 
 ports:
   - port: 8888
     onOpen: open-browser
 
-vscode:
-  extensions:
-    - ms-toolsai.jupyter
+# Disable VSCode by not including the vscode section

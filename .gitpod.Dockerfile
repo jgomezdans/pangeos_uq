@@ -1,46 +1,30 @@
-# Image source code: https://github.com/axonasif/workspace-images/tree/tmp
-# Also see https://github.com/gitpod-io/workspace-images/issues/1071
-FROM gitpod/workspace-base
+# Dockerfile
 
-# Set user
-USER gitpod
-FROM axonasif/workspace-base@sha256:8c057b1d13bdfe8c279c68aef8242d32110c8d5310f9a393f9c0417bc61367d9
+FROM gitpod/workspace-full
 
-# Set user
-USER gitpod
+# Install Miniforge
+RUN wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
+    && bash Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge3 \
+    && rm Miniforge3-Linux-x86_64.sh \
+    && /opt/miniforge3/bin/conda init bash
 
-# Install Miniconda
-RUN wget --quiet \
-https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
-    -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p $HOME/miniconda && \
-    rm ~/miniconda.sh
+# Add Miniforge to the PATH
+ENV PATH="/opt/miniforge3/bin:$PATH"
 
-# Add Miniconda to PATH
-ENV PATH="$HOME/miniconda/bin:$PATH"
+# Copy your environment.yml into the image
+COPY environment.yml /workspace/environment.yml
 
-# Initialize conda in bash config files:
-RUN conda init bash
+# Create the Conda environment
+RUN conda env create -f /workspace/environment.yml
 
-# Set up Conda channels
-RUN conda config --add channels jgomezdans && \
-    conda config --add channels conda-forge && \
-    conda config --set channel_priority strict
+# Set Conda to automatically activate
+SHELL ["bash", "-c", "source /opt/miniforge3/bin/activate pangeos_uq && conda activate pangeos_uq"]
 
-# Set libmamba as solver
-RUN conda config --set solver libmamba
+# Create the notebooks directory in the workspace
+RUN mkdir -p /workspace/notebooks
 
-# Persist ~/ (HOME) and lib
-RUN echo 'create-overlay $HOME /lib' > "$HOME/.runonce/1-home-lib_persist"
+# Expose port 8888 for Jupyter Lab
+EXPOSE 8888
 
-# Create an alias
-RUN echo 'alias gogo="$GITPOD_REPO_ROOT/utils/gogo.sh"' >> $HOME/.bash_aliases
-RUN echo 'alias nb_load="$GITPOD_REPO_ROOT/utils/nb_load.sh"' >> $HOME/.bash_aliases
-
-# Referenced in `.vscode/settings.json`
-ENV PYTHON_INTERPRETER="$HOME/miniconda/bin/python"
-# Pycharm recognizes this variables
-ENV PYCHARM_PYTHON_PATH="${PYTHON_INTERPRETER}"
-
-COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && conda clean -a
+# Start Jupyter Lab when the container starts in the notebooks folder
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root", "--NotebookApp.token=''", "--notebook-dir=/workspace/notebooks"]
