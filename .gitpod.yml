@@ -1,11 +1,12 @@
+# .gitpod.yml
+image: gitpod/workspace-full
+
 tasks:
   - init: |
-      # Set up environment
-      conda env create -f environment.yml
+      echo "Activating conda environment"
+      source ~/miniforge3/bin/activate
       conda activate pangeos_uq
-      pip install -e .
     command: |
-      # Start JupyterLab
       jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
 
 ports:
@@ -16,8 +17,24 @@ vscode:
   extensions:
     - ms-toolsai.jupyter
 
-# Pre-open the notebooks folder in Jupyter Lab
-onStart:
-  - command: |
-      mkdir -p /workspace/notebooks
-      jupyter lab --NotebookApp.notebook_dir=/workspace/notebooks
+prebuilds:
+  # Define prebuild tasks
+  - init: |
+      echo "Downloading and installing Miniforge..."
+      wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+      bash Miniforge3-Linux-x86_64.sh -b -p ~/miniforge3
+
+      echo "Initializing conda..."
+      source ~/miniforge3/bin/activate
+      conda init bash
+
+      echo "Creating conda environment..."
+      conda env create -f environment.yml || echo "Failed to create conda environment"
+
+      echo "Activating conda environment"
+      conda activate pangeos_uq
+
+      echo "Installing Python package"
+      pip install -e . || echo "Failed to install package"
+      
+      echo "Prebuild complete"
