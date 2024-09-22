@@ -2,11 +2,16 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from scipy.optimize import curve_fit
 import scipy.optimize as opt
+import scipy.linalg as sl
 import ipywidgets as widgets
-from IPython.display import display
+from IPython.display import display, clear_output
 
+from typing import List
+
+plt.ion()
 
 try:
     import prosail
@@ -79,28 +84,25 @@ def prospect_sensitivity_ssa(
     leaf_n, leaf_cab, leaf_car, leaf_cbrown, leaf_cw, leaf_cm
 ):
     """Local approximation (around ``x0``) of the sensitivity of the PROSPECT
-    model to each input parameter. YOu can set up the point around which the
+    model to each input parameter. You can set up the point around which the
     sensitivity is calculated (``x0``), the value of the finite difference
     (``epsilon``).
 
     Parameters
     -------------
     x0: array
-        A size 6 array, with the centre point around which the partial
+        A size 6 array, with the center point around which the partial
         derivatives will be calculated. The different elements are in PROSPECT
-        order, e.g. N, Cab, Car, Cbrown, Cw and Cm
+        order, e.g. N, Cab, Car, Cbrown, Cw, and Cm
     epsilon: float
         The finite difference amount. If you get NaN, make it a bit larger.
-    do_plots: bool
-        Whether to do some pretty plots
-
-    Returns
-    ----------
 
     """
 
+    # Clear previous output
+    clear_output(wait=True)
+
     epsilon = 1e-5
-    do_plots = True
     x0 = np.array([leaf_n, leaf_cab, leaf_car, leaf_cbrown, leaf_cw, leaf_cm])
     sensitivity = np.zeros((7, 2101))
     span = np.array([1.5, 80.0, 20.0, 1.0, 0.0439 - 0.0043, 0.0152 - 0.0017])
@@ -112,52 +114,55 @@ def prospect_sensitivity_ssa(
         r1 = call_prospect_5(*xp).sum(axis=1)
         sensitivity[i, :] = (r0 - r1) / epsilon
 
-    if do_plots:
-        wv = np.arange(400, 2501)
-        fig1, axs = plt.subplots(
-            figsize=(6.5, 6.5), nrows=2, ncols=3, sharex=True, sharey=True
-        )
-        axs = axs.flatten()
-        for i, input_parameter in enumerate(
-            ["n", "cab", "car", "cbrown", "cw", "cm"]
-        ):
-            axs[i].plot(wv, sensitivity[i, :], "-", lw=2)
-            axs[i].set_title(input_parameter)
-            axs[i].set_xlim(400, 2500)
-            if i in [0, 3]:
-                axs[i].set_ylabel(r"$\partial f/\partial \mathbf{x}$")
-            if i > 2:
-                axs[i].set_xlabel("Wavelength [nm]")
-        fig1.tight_layout()
-        fig2 = plt.figure(figsize=(6.47, 4))
-        ax = plt.gca()
-        for i, input_parameter in enumerate(
-            ["n", "cab", "car", "cbrown", "cw", "cm"]
-        ):
-            ax.plot(wv, sensitivity[i, :], lw=2, label=input_parameter)
+    # Plotting the sensitivity
+    wv = np.arange(400, 2501)
 
-        ax.set_xlim(400, 2500)
-        ax.set_ylabel(r"$\partial f/\partial \mathbf{x}$")
-        ax.set_xlabel("Wavelength [nm]")
-        ax.legend(loc="best", frameon=False, fontsize=10)
-        fig2.tight_layout()
-        fig3 = plt.figure(figsize=(6.47, 4))
-        ax = plt.gca()
-        ax.plot(wv, rr[:, 0], lw=2, label="Leaf Reflectance")
-        ax.plot(wv, rr[:, 1], lw=2, label="Leaf Transmittance")
-        ax.plot(wv, rr.sum(axis=1), lw=2, label=r"Leaf $\omega$")
+    # First figure
+    fig1, axs = plt.subplots(
+        figsize=(9.5, 4.5), nrows=2, ncols=3, sharex=True, sharey=True
+    )
+    axs = axs.flatten()
+    for i, input_parameter in enumerate(
+        ["n", "cab", "car", "cbrown", "cw", "cm"]
+    ):
+        axs[i].plot(wv, sensitivity[i, :], "-", lw=2)
+        axs[i].set_title(input_parameter)
+        axs[i].set_xlim(400, 2500)
+        if i in [0, 3]:
+            axs[i].set_ylabel(r"$\partial f/\partial \mathbf{x}$")
+        if i > 2:
+            axs[i].set_xlabel("Wavelength [nm]")
+    fig1.tight_layout()
+    plt.close(fig1)
+    # Second figure
+    fig2, ax2 = plt.subplots(figsize=(6.47, 4))
+    for i, input_parameter in enumerate(
+        ["n", "cab", "car", "cbrown", "cw", "cm"]
+    ):
+        ax2.plot(wv, sensitivity[i, :], lw=2, label=input_parameter)
 
-        ax.set_xlim(400, 2500)
-        ax.set_ylabel(r"$\rho,\;\tau\;\omega$")
-        ax.set_xlabel("Wavelength [nm]")
-        ax.legend(loc="best", frameon=False, fontsize=10)
-        display(
-            widgets.TwoByTwoLayout(
-                top_left=fig1.canvas,
-                top_right=fig2.canvas,
-                bottom_right=fig3.canvas,
-            )
-        )
+    ax2.set_xlim(400, 2500)
+    ax2.set_ylabel(r"$\partial f/\partial \mathbf{x}$")
+    ax2.set_xlabel("Wavelength [nm]")
+    ax2.legend(loc="best", frameon=False, fontsize=10)
+    fig2.tight_layout()
+    plt.close(fig2)
+    # Third figure
+    fig3, ax3 = plt.subplots(figsize=(6.47, 4))
+    ax3.plot(wv, rr[:, 0], lw=2, label="Leaf Reflectance")
+    ax3.plot(wv, rr[:, 1], lw=2, label="Leaf Transmittance")
+    ax3.plot(wv, rr.sum(axis=1), lw=2, label=r"Leaf $\omega$")
+
+    ax3.set_xlim(400, 2500)
+    ax3.set_ylabel(r"$\rho,\;\tau\;\omega$")
+    ax3.set_xlabel("Wavelength [nm]")
+    ax3.legend(loc="best", frameon=False, fontsize=10)
+    fig3.tight_layout()
+    plt.close(fig3)
+
+    display(fig1)  # Display fig3 below
+    display(fig2)  # Display second figure
+    display(fig3)  # Display third figure below
 
 
 def sensitivity_prospect():
@@ -237,8 +242,74 @@ def prospect_sensitivity_n(
     return xleafn, r, t
 
 
+def visualise_effect_nlayers(
+    n_samples: int = 50,
+    bands: List[int] = [560, 665, 705, 740, 783, 842, 865, 945, 1610, 2090],
+) -> None:
+    """
+    Visualises the effect of varying leaf structure (N layers) on the ratio
+    of reflectance to transmittance across different wavelength bands. Fits a
+    linear regression to the ratio for each band.
+
+    Parameters
+    ----------
+    n_samples : int, optional
+        Number of samples for the leaf structure parameter N. Default is 50.
+    bands : List[int], optional
+        List of wavelength bands (in nm) to visualize. Default includes 10
+        common bands.
+
+    Returns
+    -------
+    None
+        Displays the plot with subplots for each band, showing the
+        reflectance/transmittance ratio vs. leaf structure.
+    """
+    # Generate wavelength array and simulate data for reflectance and
+    # transmittance
+    wv = np.arange(400, 2501)
+    xleafn, refl, trans = prospect_sensitivity_n(n_samples)
+
+    # Create the subplots: 5 rows, 2 columns
+    fig, axs = plt.subplots(nrows=5, ncols=2, figsize=(8, 8), sharex=True)
+    axs = axs.flatten()
+
+    # Loop through each band and plot the ratio of reflectance to transmittance
+    for i, band in enumerate(bands):
+        # Calculate reflectance/transmittance ratio for the current band
+        ratio = np.mean(refl[:, wv == band] / trans[:, wv == band], axis=1)
+        ratio_clipped = np.clip(ratio, 0, 4)
+
+        # Scatter plot of the ratio against the leaf structure parameter (N)
+        axs[i].plot(
+            xleafn, ratio_clipped, "o", markerfacecolor="none", label="Data"
+        )
+
+        # Perform linear regression (1st degree polynomial) and plot the
+        # regression line
+        p = np.polyfit(xleafn, ratio_clipped, 1)
+        axs[i].plot(xleafn, np.polyval(p, xleafn), "-", label="Fit")
+
+        # Set plot title and axis limits
+        axs[i].set_title(f"Band {band} nm")
+        axs[i].set_ylim(0, 4)
+        axs[i].legend()
+
+    # Adjust layout to prevent overlap of subplots
+    fig.tight_layout()
+
+    # Display the final plot
+    plt.show()
+
+
 def veg_index_playground():
+    """Sets up an interactive widget to explore vegetation index calculations
+    with PROSPECT model."""
     np.seterr(divide="ignore", invalid="ignore")
+
+    # Create an output widget to update plots
+    output_plot = widgets.Output()
+
     _ = widgets.interact_manual(
         do_index,
         mode=widgets.Dropdown(options=["ssa", "refl", "trans"], value="ssa"),
@@ -265,7 +336,13 @@ def veg_index_playground():
             }
         ),
         do_plots=widgets.fixed(True),
+        output_plot=widgets.fixed(
+            output_plot
+        ),  # Pass the output_plot as a parameter
     )
+
+    # Display the output widget where plots will appear
+    display(output_plot)
 
 
 def do_index(
@@ -287,112 +364,95 @@ def do_index(
         "cm": 0.5,
     },
     do_plots=True,
+    output_plot=None,  # Output widget passed as an argument
 ):
-    """A function that runs PROSPECT for a particular parameter (named in
-    ``sweep_param``), and calculates a normalised vegetation index with two
-    bands. The function uses a top-hat bandpass functin, defined by the band
-    centres (``band1`` and ``band2``), and the bandwiths for each band
-    (``bwidth1`` and ``bwidth2``). The function works either for calculations
-    of the reflectance, transmittance or single scattering albedo. The chosen
-    parameter is swept between the boundaries given by the corresponding entry
-    in the ``minvals`` and ``maxvals`` dictionaries. Additionally, you can do
-    some plots.
-
-    Parameters
-    --------------
-    mode: str
-        Whether to use reflectance (``refl``), transmittance (``trans``) or
-            single scattering albedo (``ssa``).
-    sweep_param: str
-        The parameter which you'll be varying, by it's symbol (e.g. "cab").
-    band1: int
-        The location of the first band in nanometers.
-    band2: int
-        The location of the second band in nanometers.
-    bwidth1: int
-        The (half) bandwidth of the first band in nanometers
-    bwidth2: int
-        The (half) bandwidth of the second band in nanometers
-    n_samples: int
-        The number of random samples to draw for each value of the sweep
-        parameter
-    spaces: int
-        The number of chunks in which to divide the span of the sweep
-        parameter (more ``spaces``, more resolution, as it were).
-    minvals: dict
-        Dictionary with minimum values for each parameter
-    maxvals: dict
-        Dictionary with maximum values for each parameter
-    do_plots: bool
-        Whether to do nice scatter plot of the index vs the sweep parameter
-        value
-
-    Returns
-    --------
-    The sweep parameter and the vegetation index as arrays.
-
-
     """
-    xbase = np.zeros(6)
-    span = np.zeros(6)
-    pars = ["n", "cab", "car", "cbrown", "cw", "cm"]
-    for i, param in enumerate(pars):
-        xbase[i] = minvals[param]
-        span[i] = maxvals[param] - minvals[param]
+    Runs PROSPECT model for a specific parameter and calculates a
+    normalized vegetation index.
+    """
+    if output_plot is not None:
+        # Clear previous output from the output widget
+        with output_plot:
+            output_plot.clear_output(wait=True)
 
-    r = []
-    t = []
-    wv = np.arange(400, 2501)
-    ss = []
-    delta = (maxvals[sweep_param] - minvals[sweep_param]) / spaces
-    for s in np.linspace(
-        minvals[sweep_param], maxvals[sweep_param], num=spaces
-    ):
-        for i in range(n_samples):
-            x = xbase + span * np.random.rand(6)
-            tx = s + delta * (np.random.rand() - 0.5)
-            x[pars.index(sweep_param)] = tx
-            rr = call_prospect_5(*x)
-            r.append(rr[:, 0])
-            t.append(rr[:, 1])
-            ss.append(tx)
-    r = np.array(r)
-    t = np.array(t)
-    s = np.array(ss)
+            xbase = np.zeros(6)
+            span = np.zeros(6)
+            pars = ["n", "cab", "car", "cbrown", "cw", "cm"]
+            for i, param in enumerate(pars):
+                xbase[i] = minvals[param]
+                span[i] = maxvals[param] - minvals[param]
 
-    isel1 = np.logical_and(wv >= band1 - bwidth1, wv <= band1 + bwidth1)
-    isel2 = np.logical_and(wv >= band2 - bwidth2, wv <= band2 + bwidth2)
+            r = []
+            t = []
+            wv = np.arange(400, 2501)
+            ss = []
+            delta = (maxvals[sweep_param] - minvals[sweep_param]) / spaces
+            for s in np.linspace(
+                minvals[sweep_param], maxvals[sweep_param], num=spaces
+            ):
+                for i in range(n_samples):
+                    x = xbase + span * np.random.rand(6)
+                    tx = s + delta * (np.random.rand() - 0.5)
+                    x[pars.index(sweep_param)] = tx
+                    rr = call_prospect_5(
+                        *x
+                    )  # Call PROSPECT model with parameters
+                    r.append(rr[:, 0])
+                    t.append(rr[:, 1])
+                    ss.append(tx)
+            r = np.array(r)
+            t = np.array(t)
+            s = np.array(ss)
 
-    if mode == "refl":
-        b1 = r[:, isel1]
-        b2 = r[:, isel2]
+            # Select wavelengths within the bands
+            isel1 = np.logical_and(
+                wv >= band1 - bwidth1, wv <= band1 + bwidth1
+            )
+            isel2 = np.logical_and(
+                wv >= band2 - bwidth2, wv <= band2 + bwidth2
+            )
 
-    elif mode == "trans":
-        b1 = t[:, isel1]
-        b2 = t[:, isel2]
-    elif mode == "ssa":
-        b1 = r[:, isel1] + t[:, isel1]
-        b2 = r[:, isel2] + t[:, isel2]
-    else:
-        raise ValueError("`mode` can only 'refl', 'trans' or 'ssa'!")
+            # Calculate the normalized vegetation index based on the
+            # selected mode
+            if mode == "refl":
+                b1 = r[:, isel1]
+                b2 = r[:, isel2]
+            elif mode == "trans":
+                b1 = t[:, isel1]
+                b2 = t[:, isel2]
+            elif mode == "ssa":
+                b1 = r[:, isel1] + t[:, isel1]
+                b2 = r[:, isel2] + t[:, isel2]
+            else:
+                raise ValueError("`mode` can only 'refl', 'trans' or 'ssa'!")
 
-    vi = (b2.mean(axis=1) - b1.mean(axis=1)) / (
-        b2.mean(axis=1) + b1.mean(axis=1)
-    )
-    if do_plots:
-        fig = plt.figure(figsize=(6.47, 4))
-        ax = plt.gca()
-        ax.plot(vi, s, "o", markerfacecolor="none")
-        ax.set_ylabel(sweep_param)
-        ax.set_xlabel("VI")
-        ax.set_title("B1: %g, B2: %G" % (band1, band2))
-        fig.tight_layout()
-        display(fig.canvas)
-    return s, vi
+            # Normalized vegetation index calculation
+            vi = (b2.mean(axis=1) - b1.mean(axis=1)) / (
+                b2.mean(axis=1) + b1.mean(axis=1)
+            )
+
+            # Plot the results if required
+            if do_plots:
+                fig = plt.figure(figsize=(6.47, 4))
+                ax = plt.gca()
+                ax.plot(vi, s, "o", markerfacecolor="none")
+                ax.set_ylabel(sweep_param)
+                ax.set_xlabel("VI")
+                ax.set_title(f"B1: {band1}, B2: {band2}")
+                fig.tight_layout()
+                plt.show()
+
+            return s, vi
 
 
 def red_edge_playground():
+    """Sets up an interactive widget to explore red edge calculations
+    with PROSPECT model."""
     np.seterr(divide="ignore", invalid="ignore")
+
+    # Create an output widget to update plots
+    output_plot = widgets.Output()
+
     _ = widgets.interact_manual(
         red_edge,
         mode=widgets.Dropdown(options=["ssa", "refl", "trans"], value="refl"),
@@ -417,7 +477,13 @@ def red_edge_playground():
             }
         ),
         do_plots=widgets.fixed(True),
+        output_plot=widgets.fixed(
+            output_plot
+        ),  # Pass the output_plot as a parameter
     )
+
+    # Display the output widget where plots will appear
+    display(output_plot)
 
 
 def red_edge(
@@ -444,107 +510,83 @@ def red_edge(
         "cm": 0.5,
     },
     do_plots=True,
+    output_plot=None,  # Output widget passed as an argument
 ):
-    """A function that runs PROSPECT for a particular parameter (named in
-    ``sweep_param``), and calculates a normalised vegetation index with two
-    bands. The function uses a top-hat bandpass functin, defined by the band
-    centres (``band1`` and ``band2``), and the bandwidths for each band
-    (``bwidth1`` and ``bwidth2``). The function works either for
-    calculations of the reflectance, transmittance or single scattering albedo.
-    The chosen parameter is swept between the boundaries
-    given by the corresponding entry in the ``minvals`` and ``maxvals``
-    dictionaries. Additionally, you can do some plots.
-
-    Parameters
-    --------------
-    mode: str
-        Whether to use reflectance (``refl``), transmittance (``trans``) or
-            single scattering albedo (``ssa``).
-    sweep_param: str
-        The parameter which you'll be varying, by it's symbol (e.g. "cab").
-    band1: int
-        The location of the first band in nanometers.
-    band2: int
-        The location of the second band in nanometers.
-    n_samples: int
-        The number of random samples to draw for each value of the sweep
-        parameter
-    spaces: int
-        The number of chunks in which to divide the span of the sweep
-        parameter (more ``spaces``, more resolution, as it were).
-    minvals: dict
-        Dictionary with minimum values for each parameter
-    maxvals: dict
-        Dictionary with maximum values for each parameter
-    do_plots: bool
-        Whether to do nice scatter plot of the index vs the sweep parameter
-        value
-
-    Returns
-    --------
-    The sweep parameter and the location of the turning point in the red edge.
-
-
     """
+    Runs PROSPECT model for a specific parameter and calculates the red edge
+    turning point.
+    """
+    if output_plot is not None:
+        # Clear previous output from the output widget
+        with output_plot:
+            output_plot.clear_output(wait=True)
 
-    xbase = np.zeros(6)
-    span = np.zeros(6)
-    pars = ["n", "cab", "car", "cbrown", "cw", "cm"]
-    for i, param in enumerate(pars):
-        xbase[i] = minvals[param]
-        span[i] = maxvals[param] - minvals[param]
+            xbase = np.zeros(6)
+            span = np.zeros(6)
+            pars = ["n", "cab", "car", "cbrown", "cw", "cm"]
+            for i, param in enumerate(pars):
+                xbase[i] = minvals[param]
+                span[i] = maxvals[param] - minvals[param]
 
-    wv = np.arange(400, 2501)
-    isel = np.logical_and(wv >= band1, wv <= band2)
-    wv = np.arange(band1, band2 + 1)
+            wv = np.arange(400, 2501)
+            isel = np.logical_and(wv >= band1, wv <= band2)
+            wv = np.arange(band1, band2 + 1)
 
-    ss = []
-    delta = (maxvals[sweep_param] - minvals[sweep_param]) / spaces
+            ss = []
+            delta = (maxvals[sweep_param] - minvals[sweep_param]) / spaces
 
-    red_edge = []
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(6.47 * 1.62, 6.47))
-    for ii, s in enumerate(
-        np.linspace(minvals[sweep_param], maxvals[sweep_param], num=spaces)
-    ):
-        yy = np.zeros((isel.sum(), n_samples))
-        for i in range(n_samples):
-            x = xbase + span * np.random.rand(6)
-            x = np.array([1.5, 40.0, 5.0, 0.0, 0.0113, 0.0053])
-            tx = s + delta * (np.random.rand() - 0.5)
-            x[pars.index(sweep_param)] = tx
-            rr = call_prospect_5(*x)
-            if mode == "refl":
-                y = rr[isel, 0]
-            elif mode == "trans":
-                y = rr[isel, 1]
-            elif mode == "ssa":
-                y = rr[isel, 0] + rr[isel, 1]
-            yy[:, i] = y
+            red_edge = []
+            fig, axs = plt.subplots(
+                nrows=1, ncols=2, figsize=(6.47 * 1.62, 6.47)
+            )
+            for ii, s in enumerate(
+                np.linspace(
+                    minvals[sweep_param], maxvals[sweep_param], num=spaces
+                )
+            ):
+                yy = np.zeros((isel.sum(), n_samples))
+                for i in range(n_samples):
+                    x = xbase + span * np.random.rand(6)
+                    x = np.array([1.5, 40.0, 5.0, 0.0, 0.0113, 0.0053])
+                    tx = s + delta * (np.random.rand() - 0.5)
+                    x[pars.index(sweep_param)] = tx
+                    rr = call_prospect_5(*x)  # Call the PROSPECT model
+                    if mode == "refl":
+                        y = rr[isel, 0]
+                    elif mode == "trans":
+                        y = rr[isel, 1]
+                    elif mode == "ssa":
+                        y = rr[isel, 0] + rr[isel, 1]
+                    yy[:, i] = y
 
-        pp, cov = curve_fit(
-            lambda x, a, b, c, d: a + b * x + c * x * x + d * x * x * x,
-            wv,
-            yy.mean(axis=1),
-        )
-        ss.append(s)
-        red_edge.append(-pp[2] / (3 * pp[3]))
-        if do_plots:
-            iloc = np.argmin(np.abs(wv - -pp[2] / (3 * pp[3])))
-            if np.abs(wv - -pp[2] / (3 * pp[3]))[iloc] <= 5:
-                axs[0].plot(wv[iloc], yy.mean(axis=1)[iloc], "ko")
-            axs[0].plot(wv, yy.mean(axis=1), "-")
+                # Fit a cubic curve to the data
+                pp, cov = curve_fit(
+                    lambda x, a, b, c, d: a
+                    + b * x
+                    + c * x * x
+                    + d * x * x * x,
+                    wv,
+                    yy.mean(axis=1),
+                )
+                ss.append(s)
+                red_edge.append(-pp[2] / (3 * pp[3]))  # Red edge turning point
+                if do_plots:
+                    iloc = np.argmin(np.abs(wv - -pp[2] / (3 * pp[3])))
+                    if np.abs(wv - -pp[2] / (3 * pp[3]))[iloc] <= 5:
+                        axs[0].plot(wv[iloc], yy.mean(axis=1)[iloc], "ko")
+                    axs[0].plot(wv, yy.mean(axis=1), "-")
+                    axs[0].set_xlabel("Wavelength [nm]")
+                    axs[0].set_ylabel(mode)
 
-            axs[0].set_xlabel("Wavelength [nm]")
-            axs[0].set_ylabel(mode)
+            if do_plots:
+                axs[1].plot(ss, red_edge, "o-")
+                axs[1].set_xlabel(sweep_param)
+                axs[1].set_ylabel(r"$\lambda_{red\, edge}\;\left[nm\right]$")
+                axs[1].set_ylim(band1 - band1 * 0.1, band2 + band2 * 0.1)
+            fig.tight_layout()
+            plt.show()  # Display the plot
 
-    if do_plots:
-        axs[1].plot(ss, red_edge, "o-")
-        axs[1].set_xlabel(sweep_param)
-        axs[1].set_ylabel(r"$\lambda_{red\, edge}\;\left[nm\right]$")
-        axs[1].set_ylim(band1 - band1 * 0.1, band2 + band2 * 0.1)
-    fig.tight_layout()
-    display(fig.canvas)
-    return np.array(ss), np.array(red_edge)
+            return np.array(ss), np.array(red_edge)
 
 
 def read_lopex_sample(sample_no=23, do_plot=True, db_path="../data/LOPEX93/"):
@@ -572,6 +614,8 @@ def read_lopex_sample(sample_no=23, do_plot=True, db_path="../data/LOPEX93/"):
         )
     except IOError:
         print("This sample is not available in the database!")
+        read_lopex_sample.data = (None, None)
+        return
 
     trans = np.loadtxt("%s/trans.%03d.dat" % (db_path, sample_no)).reshape(
         (5, 2101)
@@ -580,16 +624,17 @@ def read_lopex_sample(sample_no=23, do_plot=True, db_path="../data/LOPEX93/"):
     wv = np.arange(400, 2501)
 
     if do_plot:
-        fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 8))
+        plt.close("all")
+        fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(6, 4))
         for nsample in range(5):
             axs[0].plot(wv, refl[nsample, :])
             axs[1].plot(wv, trans[nsample, :])
-        axs[0].set_title("Reflectance")
-        axs[1].set_title("Transmittance")
+        axs[0].set_ylabel("Reflectance")
+        axs[1].set_ylabel("Transmittance")
         axs[1].set_xlabel("Wavelength [nm]")
-
+        fig.tight_layout()
     read_lopex_sample.data = (refl, trans)
-    # return refl, trans
+    return
 
 
 def the_cost_function(x, refl, trans):
@@ -606,23 +651,145 @@ def the_cost_function(x, refl, trans):
     return np.sum(cost_refl + cost_trans)
 
 
+def calculate_mean_and_covariance(
+    refl: np.ndarray, trans: np.ndarray
+) -> tuple:
+    """
+    Calculate the mean and combined covariance matrix for reflectance and
+    transmittance replicates.
+
+    Parameters:
+    refl : np.ndarray
+        Reflectance array of shape (5, 2101), where 5 is the number of
+        replicates.
+    trans : np.ndarray
+        Transmittance array of shape (5, 2101), where 5 is the number
+        of replicates.
+
+    Returns:
+    tuple:
+        mean_refl : np.ndarray
+            Mean reflectance across replicates, shape (2101,).
+        mean_trans : np.ndarray
+            Mean transmittance across replicates, shape (2101,).
+        combined_cov : np.ndarray
+            Combined covariance matrix, shape (4202, 4202), capturing
+            covariances between
+            reflectance and transmittance, as well as their internal
+            correlations.
+        inv_cov : np.ndarray
+            Inverse of the combined covariance matrix, shape (4202, 4202). This
+            is an approximation often calculated using SVD.
+        correlation_matrix : np.ndarray
+            The correlation matrix, shape (4202, 4202), with the full
+            correlation structure between reflectance and
+            transmittance measurements.
+    """
+    # Calculate the mean reflectance and transmittance
+    mean_refl = np.mean(refl, axis=0)  # Shape: (2101,)
+    mean_trans = np.mean(trans, axis=0)  # Shape: (2101,)
+
+    # Stack reflectance and transmittance replicates into a single matrix
+    stacked_data = np.hstack((refl, trans))  # Shape: (5, 4202)
+
+    #  Calculate the covariance matrix (combined for reflectance
+    # and transmittance)
+    combined_cov = np.cov(
+        stacked_data - np.hstack((mean_refl, mean_trans)), rowvar=False
+    )  # Shape: (4202, 4202)
+    # Perform Cholesky decomposition to get lower triangular matrix L
+    try:
+        L = np.linalg.cholesky(combined_cov)
+        # Invert the covariance matrix using forward and backward substitution
+        # L * L^T = combined_cov, so inv(combined_cov) = inv(L^T) * inv(L)
+        # First solve for inv(L)
+        inv_L = sl.solve_triangular(L, np.eye(L.shape[0]), lower=True)
+        inv_cov = inv_L.T @ inv_L
+    except np.linalg.LinAlgError:
+        print("⚠️ Cholesky decomposition failed. Using SVD instead....⚠️")
+        print("⚠️ This will take a while...⚠️")
+
+        U, S, Vt = np.linalg.svd(combined_cov)
+        # Invert the diagonal matrix of singular values, ensuring small
+        # values are thresholded
+        S_inv = np.diag([1 / s if s > 1e-8 else 0 for s in S])
+        inv_cov = Vt.T @ S_inv @ U.T
+
+    # Then, calculate inv(combined_cov) = inv(L^T) @ inv(L)
+
+    # Correlation matrix:
+    correlation_matrix = combined_cov / np.outer(
+        np.sqrt(np.diag(combined_cov)), np.sqrt(np.diag(combined_cov))
+    )
+
+    return mean_refl, mean_trans, combined_cov, inv_cov, correlation_matrix
+
+
+def the_cost_function_covariance(
+    x: np.ndarray, refl: np.ndarray, trans: np.ndarray, inv_cov: np.ndarray
+) -> float:
+    """
+    Cost function that computes the Mahalanobis distance between modeled
+    and observed reflectance and transmittance, accounting for their
+    uncertainties via an inverse covariance matrix.
+
+    Parameters:
+    x : np.ndarray
+        Input vector of parameters to invert the model.
+    refl : np.ndarray
+        Measured reflectance vector (2101 elements).
+    trans : np.ndarray
+        Measured transmittance vector (2101 elements).
+    inv_cov : np.ndarray
+        Inverse covariance matrix, should be of shape (4202, 4202) if stacked
+        reflectance and transmittance.
+
+    Returns:
+    float
+        The cost associated with the given parameters.
+    """
+    # Run the model with the parameters in x
+    retval = call_prospect_5(*x)
+
+    # Extract modeled reflectance and transmittance
+    modeled_refl = retval[:, 0]  # Reflectance model output
+    modeled_trans = retval[:, 1]  # Transmittance model output
+
+    # Stack reflectance and transmittance vectors
+    if refl is None:
+        refl_diff = np.zeros_like(modeled_refl)
+    else:
+        refl_diff = refl - modeled_refl
+
+    if trans is None:
+        trans_diff = np.zeros_like(modeled_trans)
+    else:
+        trans_diff = trans - modeled_trans
+
+    # Create the residual vector (stacked reflectance and
+    # transmittance differences)
+    residual = np.hstack((refl_diff, trans_diff))
+
+    # Compute the Mahalanobis distance using the inverse covariance matrix
+    return -0.5 * residual.T @ inv_cov @ residual
+
+
 def optimise_random_starts(
-    refl,
-    trans,
-    cost_function=the_cost_function,
-    n_tries=20,
-    lobound=np.array([0.8, 0, 0, 0, 0.0043, 0.0017]),
-    hibound=np.array([2.8, 80, 20, 1, 0.0439, 0.0152]),
-    verbose=True,
-    do_plots=True,
-):
-    """A function for minimising a cost function with reflectance and
-    transmittance values. To account for the local nature of the gradient
-    descent minimiser, the optimisation is started from 20 (or ``n_tries``)
-    random points within the parameter boundaries. The best (lowest) solution
-    is selected and reported. Additional options let you change these
-    boundaries,as well as the amount of information it reports back, and
-    comparison "goodness of fit" plot.
+    refl: np.ndarray,
+    trans: np.ndarray,
+    cost_function: callable = the_cost_function,
+    n_tries: int = 10,
+    lobound: np.ndarray = np.array([0.8, 0, 0, 0, 0.0043, 0.0017]),
+    hibound: np.ndarray = np.array([2.8, 80, 20, 1, 0.0439, 0.0152]),
+    verbose: bool = True,
+    do_plots: bool = True,
+) -> tuple:
+    """Minimise a cost function with either reflectance and/or
+    transmittance measurements. To account for the local nature of the gradient
+    descent minimiser, the optimisation is started from 10 (or `n_tries`)
+    random points within the parameter boundaries. Additional options let you
+    change the parameter boundaries,as well as the amount of information it
+    reports back, and comparison "goodness of fit" plot.
 
     Parameters
     ------------
@@ -641,8 +808,8 @@ def optimise_random_starts(
 
     Returns
     ----------
-    The forward modelled reflectance and transmittance, the model parameters
-    at the minimum and the value of the cost function there.
+    A pandas Dataframe with the minimisation solution per try (plus mean and
+    standard deviation) and forward modelled reflectances and transmittances.
     """
     wv = np.arange(400, 2501)
 
@@ -682,28 +849,46 @@ def optimise_random_starts(
         print(store[i])
 
     if do_plots:
-        fig, axs = plt.subplots(
-            nrows=2, ncols=1, figsize=(10, 10), sharex=True
-        )  # noqa
+        fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(5, 4), sharex=True)
         axs = axs.flatten()
         if refl is not None:
-            l1 = axs[0].plot(wv, refl, "--", label="Measurements")
-        l2 = axs[0].plot(
+            (l1,) = axs[0].plot(wv, refl, "--", label="Measurements")
+        (l2,) = axs[0].plot(
             wv,
             call_prospect_5(*store[i].x)[:, 0],
             "-",
             lw=2,
             label="Fitted PROSPECT",
         )
-        if trans is not None:
-            axs[1].plot(wv, trans, "--")
-        axs[1].plot(wv, call_prospect_5(*store[i].x)[:, 1], "-", lw=2)
-        axs[0].set_title("Reflectance")
-        axs[1].set_title("Transmittance")
-        axs[1].set_xlabel("Wavelength [nm]")
-        axs[0].legend([l1, l2], loc="best")
+        axs[0].legend(loc="best", fontsize=8)
 
-    return fwd_refl, fwd_trans, store[i].x, store[i].fun
+        if trans is not None:
+            (l3,) = axs[1].plot(wv, trans, "--", label="Measurements")
+
+        (l4,) = axs[1].plot(
+            wv,
+            call_prospect_5(*store[i].x)[:, 1],
+            "-",
+            lw=2,
+            label="Fitted PROSPECT",
+        )
+        axs[0].set_ylabel("Reflectance", fontsize=8)
+        axs[1].set_ylabel("Transmittance", fontsize=8)
+        axs[1].set_xlabel("Wavelength [nm]", fontsize=8)
+        axs[1].legend(loc="best", fontsize=8)
+        fig.tight_layout()
+    all_cost = [x.fun for x in store]
+    all_x = [x.x for x in store]
+    df = pd.DataFrame(all_x, columns=["n", "cab", "car", "cbrown", "cw", "cm"])
+    df["cost"] = all_cost
+    df = pd.concat(
+        [
+            df,
+            df.mean().to_frame().T.rename(index={0: "Mean"}),
+            df.std().to_frame().T.rename(index={0: "Std"}),
+        ]
+    )
+    return (df, fwd_refl, fwd_trans)
 
 
 def call_prosail(

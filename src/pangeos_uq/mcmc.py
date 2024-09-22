@@ -6,8 +6,9 @@ from tqdm import tqdm
 # https://github.com/tdhopper/mcmc/blob/master/Metropolis-Hastings%20Algorithm.ipynb
 
 
-def transition(current_state, logpdf, dim):
-    transition = stats.multivariate_normal.rvs(size=dim)
+def transition(current_state, logpdf, dim, scaling):
+    transition = stats.multivariate_normal.rvs(size=dim) * scaling
+    transition = transition.squeeze()
     candidate = current_state + transition
     prev_log_likelihood = logpdf(current_state)
     candidate_log_likelihood = logpdf(candidate)
@@ -18,7 +19,7 @@ def transition(current_state, logpdf, dim):
     return candidate if uniform_draw < diff else current_state
 
 
-def generate_samples(initial_state, num_iterations, logpdf):
+def generate_samples(initial_state, num_iterations, logpdf, scaling=0.01):
     """
     Generate samples using the MCMC MH algorithm.
 
@@ -36,5 +37,5 @@ def generate_samples(initial_state, num_iterations, logpdf):
 
     # Wrap the loop in tqdm to show progress
     for _ in tqdm(range(num_iterations), desc="Sampling"):
-        current_state = transition(current_state, logpdf, dim)
+        current_state = transition(current_state, logpdf, dim, scaling)
         yield current_state

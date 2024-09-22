@@ -1,19 +1,122 @@
 from .prosail_funcs import call_prosail
 from .sixs_lut import LUTQuery
 from .mcmc import generate_samples
+import datetime as dt
 import numpy as np
+import importlib
 from collections import namedtuple
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+import pandas as pd
 from IPython.display import display
+import seaborn as sns
 
-from scipy.stats import gaussian_kde
+
 from typing import Tuple
 
 geometry = namedtuple("geometry", ["sza", "vza", "raa"])
 atmospheric_parameters = namedtuple(
     "atmospheric_parameters", ["LUT", "AOT", "TCWV", "AOT_unc", "TCWV_unc"]
 )
+# We define min and max values for the parameters in a single place
+# order is 'N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown', 'psoil', 'rsoil'
+min_vals = np.array([1.1, 5, 0.001, 0.001, 0.01, 0, 0, 0, 0])
+max_vals = np.array([2.9, 100, 0.03, 0.06, 8, 90, 1, 1, 1])
+
+
+with importlib.resources.path(
+    "pangeos_uq.data", "archetype_statistics.npz"
+) as f:
+    ff = np.load(f)
+    prior_means = {
+        stage: ff[f"{stage}_mean"] for stage in ["early", "mid", "late", "all"]
+    }
+    prior_cov = {
+        stage: ff[f"{stage}_covariance"]
+        for stage in ["early", "mid", "late", "all"]
+    }
+    prior_inv_cov = {
+        stage: ff[f"{stage}_inv_covariance"]
+        for stage in ["early", "mid", "late", "all"]
+    }
+    param_names = list(ff["param_names"])
+
+
+def uniform_prior(x: np.ndarray) -> float:
+    uniform_prior.mean = (min_vals + max_vals) / 2.0
+    uniform_prior.name = "uniform"
+    if np.any(x < min_vals) or np.any(x > max_vals):
+        return -np.inf
+    else:
+        # Product of uniform priors
+        return -np.sum(np.log(max_vals - min_vals))
+
+
+def normal_prior_func(
+    mean: np.ndarray, inv_cov: np.ndarray, stage
+) -> callable:
+    def normal_prior(x: np.ndarray) -> float:
+        # n, lai, ala, cab, cw, cm, cbrown, psoil, rsoil
+        # prior from arc is N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown'
+        normal_prior_func.mean = (min_vals + max_vals) / 2.0
+        normal_prior_func.name = stage
+        if np.any(x < min_vals) or np.any(x > max_vals):
+            return -np.inf
+        else:
+            # Ignore soil parameters
+            diff = x[:-2] - mean
+            return -0.5 * diff @ inv_cov @ diff
+
+    return normal_prior
+
+
+def get_priors():
+    prior_funcs = {}
+    prior_funcs["uniform"] = uniform_prior
+    prior_funcs["uniform"].mean = (min_vals + max_vals) / 2.0
+
+    for stage in ["early", "mid", "late", "all"]:
+        prior_funcs[stage] = normal_prior_func(
+            prior_means[stage], prior_inv_cov[stage], stage
+        )
+        prior_funcs[stage].mean = np.concatenate(
+            (prior_means[stage], [0.5, 0.5])
+        )
+        prior_funcs[stage].name = stage
+    return prior_funcs
+
+
+def sample_prior_distribution(
+    prior_name: str, n_samples: int = 3000
+) -> pd.DataFrame:
+    """Returns a DataFrame of samples from the selected prior distribution."""
+
+    PARAMETER_NAMES = param_names + ["psoil", "rsoil"]
+    vals = list(prior_means.keys()) + ["uniform"]
+    # Validate the prior name
+    if prior_name not in vals:
+        raise ValueError(
+            f"Invalid prior name '{prior_name}'. ",
+            f"Choose from: {list(prior_means.keys())}",
+        )
+
+    if prior_name != "uniform":
+        # Draw samples from the selected prior
+        mean = prior_means[prior_name]
+        cov = prior_cov[prior_name]
+        samples = np.random.multivariate_normal(mean, cov, size=n_samples)
+        samples_df = pd.DataFrame(samples, columns=param_names)
+        # Add rsoil and psoil as uniform [0,1] random variables
+        samples_df["rsoil"] = np.random.uniform(0, 1, size=n_samples)
+        samples_df["psoil"] = np.random.uniform(0, 1, size=n_samples)
+        return samples_df
+
+    else:
+        samples = np.random.uniform(
+            low=min_vals, high=max_vals, size=(n_samples, len(min_vals))
+        )
+        samples_df = pd.DataFrame(samples, columns=PARAMETER_NAMES)
+        return samples_df
 
 
 class BiophysicalRetrieval:
@@ -59,23 +162,27 @@ class BiophysicalRetrieval:
         """
         # parameters are stored in a dictionary, which we convert to a list
         # Note that Car is Cab/4, anthocyanin is 0, and hotspots is 0.01
+
+        # N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown
+        # 0, 1, 6, 5, 7, 8, 4, 9, 10
         self.x = [
-            parameters["N"],
-            parameters["Cab"],
-            parameters["Cab"] * 0.25,
-            0.0,
-            parameters["Cbrown"],
-            parameters["Cw"],
-            parameters["Cm"],
-            parameters["LAI"],
-            parameters["ALA"],
-            parameters["psoil"],
-            parameters["rsoil"],
+            parameters["N"],  # 0
+            parameters["Cab"],  # 1
+            parameters["Cab"] * 0.25,  # 2
+            0.0,  # 3
+            parameters["Cbrown"],  # 4
+            parameters["Cw"],  # 5
+            parameters["Cm"],  # 6
+            parameters["LAI"],  # 7
+            parameters["ALA"],  # 8
+            parameters["psoil"],  # 9
+            parameters["rsoil"],  # 10
             0.01,
             parameters["sza"],
             parameters["vza"],
             parameters["raa"],
         ]
+        self.parameters = parameters
         # Store geometry into a named tuple
         self.geometry = geometry(
             parameters["sza"], parameters["vza"], parameters["raa"]
@@ -129,17 +236,21 @@ class BiophysicalRetrieval:
             float: The computed cost value.
         """
         x_full = np.array(self.x.copy())
-        posns = np.array([0, 1, 4, 5, 6, 7, 8, 9, 10])
+        # N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown'
+        # posns = np.array([0, 1, 4, 5, 6, 7, 8, 9, 10])
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         x_full[posns] = x
-
+        prior_cost = self.prior(x)
+        if np.isneginf(prior_cost):
+            return -np.inf
         rho_canopy_sim = simulate_spectral_reflectance(x_full, cov_matrix=None)
         _, rho_canopy_sim = integrate_spectral_reflectance(
             rho_canopy_sim, self.srf
         )
         diff = self.boa_reflectance_mean - rho_canopy_sim
         obs_cost = -0.5 * diff.T @ self.inv_obs_cov @ diff
-        prior_cost = self.prior(x)
-        return prior_cost + obs_cost
+        cost = prior_cost + obs_cost
+        return cost
 
     def propagate_to_toa(self) -> np.ndarray:
         """
@@ -150,7 +261,7 @@ class BiophysicalRetrieval:
             self.geometry,
             self.atmospheric_parameters,
         )
-        sigma = toa_reflectance * 0.03  # 3% error
+        sigma = 2 * toa_reflectance * self.parameters["noise_unc"] / 100.0
         self.toa_reflectance = (
             toa_reflectance + np.random.randn(*toa_reflectance.shape) * sigma
         )
@@ -165,10 +276,13 @@ class BiophysicalRetrieval:
             self.atmospheric_parameters,
         )
         self.boa_reflectance_mean = self.boa_reflectance_ensemble.mean(axis=0)
+        sigma_obs = (
+            2.0 * self.toa_reflectance * self.parameters["noise_unc"] / 100
+        )
         self.obs_cov = np.cov(
             self.boa_reflectance_ensemble - self.boa_reflectance_mean,
             rowvar=False,
-        ) + np.diag(np.ones(len(self.wvc)) * 0.05**2)
+        ) + np.diag(np.ones(len(self.wvc)) * sigma_obs**2)
         self.obs_corr = np.corrcoef(
             (self.boa_reflectance_ensemble - self.boa_reflectance_mean).T,
         )
@@ -185,24 +299,51 @@ class BiophysicalRetrieval:
         """
         Runs the MCMC sampling based on the prior and the simulated data.
         """
-        initial_value = self.prior.mean
+        if hasattr(self.prior, "mean"):
+            initial_value = np.array(self.prior.mean)
+        else:
+            initial_value = min_vals + 0.5 * (max_vals - min_vals)
+
+        if len(initial_value) != 9:
+            initial_value = np.concatenate((initial_value, [0.5, 0.5]))
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        # initial_value = np.array(self.x.copy())[posns]
+        trans_vector = (max_vals - min_vals) / 100.0
         self.posterior_samples = np.array(
             list(
-                generate_samples(initial_value, n_samples, self.cost_function)
+                generate_samples(
+                    initial_value, n_samples, self.cost_function, trans_vector
+                )
             )
         )
+        parameter_names = param_names + ["psoil", "rsoil"]
+        fname_out = f"{dt.datetime.now().isoformat()}_posterior_samples.npz"
+        true_values = np.array(self.x.copy())[posns]
+        np.savez(
+            fname_out,
+            posterior_samples=self.posterior_samples,
+            parameter_names=parameter_names,
+            true_values=true_values,
+        )
+        print(f"Saved posterior samples to {fname_out}")
 
     def plot_posterior(self, output_panel: widgets.Output) -> None:
         """
         Visualizes the results in two panels: Observations and Parameters.
         """
-        testme = np.random.random((500, 10))
+        prior_samples = sample_prior_distribution(
+            self.prior.name, n_samples=300
+        )
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        true_values = np.array(self.x.copy())[posns]
         visualize_panels(
+            true_values,
             self.toa_reflectance,
             self.boa_reflectance_sim,
             self.boa_reflectance_ensemble,
-            testme,
+            self.posterior_samples,
             output_panel,
+            prior_samples=prior_samples,
         )
 
 
@@ -288,7 +429,7 @@ def uncertain_correct_to_boa(
     toa_reflectance: np.ndarray,
     geometry: geometry,
     atmos_params: atmospheric_parameters,
-    n_ensemble: int = 15,  # 12 samples are enough for everyone! ;)
+    n_ensemble: int = 50,  # 12 samples are enough for everyone! ;)
 ) -> np.ndarray:
     """Corrects the TOA reflectance to BOA using LUT and uncertainty sampling.
 
@@ -316,6 +457,10 @@ def uncertain_correct_to_boa(
         xap = np.delete(atmos_paramsx["xap"], 6)
         xb = np.delete(atmos_paramsx["xb"], 6)
         xc = np.delete(atmos_paramsx["xc"], 6)
+        xap = xap + 0.05 * np.random.randn(len(xap))
+        xb = xb + 0.05 * np.random.randn(len(xap))
+        xc = xc + 0.05 * np.random.randn(len(xap))
+
         y = xap * toa_reflectance - xb
         rho_boa_corr = np.clip(y / (1.0 + xc * y), 0, 1)
         rho_boa_ensemble.append(rho_boa_corr)
@@ -323,11 +468,13 @@ def uncertain_correct_to_boa(
 
 
 def visualize_panels(
+    true_values: np.ndarray,
     toa_reflectance: np.ndarray,
     boa_reflectance_sim: np.ndarray,
     boa_reflectance_ensemble: np.ndarray,
     posterior_samples: np.ndarray,
     output_panel: widgets.Output,
+    prior_samples: np.ndarray | None = None,
 ) -> None:
     """
     Visualizes the observations and parameter distributions in two
@@ -409,48 +556,24 @@ def visualize_panels(
         Returns:
             widget: A widget containing the Parameters panel.
         """
-        n_params = posterior_samples.shape[1]
-        fig, axes = plt.subplots(n_params, n_params, figsize=(12, 12))
+        PARAMETERS_NAME = param_names + ["psoil", "rsoil"]
+        posterior_df = pd.DataFrame(posterior_samples, columns=PARAMETERS_NAME)
 
-        # Loop through each parameter and create diagonal histograms
-        # (posterior distributions) and off-diagonal scatter plots
-        for i in range(n_params):
-            for j in range(n_params):
-                if i == j:
-                    # Diagonal: Histogram and KDE of posterior samples
-                    # for each parameter
-                    axes[i, j].hist(
-                        posterior_samples[:, i],
-                        bins=20,
-                        density=True,
-                        alpha=0.5,
-                    )
-                    kde = gaussian_kde(posterior_samples[:, i])
-                    x_vals = np.linspace(
-                        np.min(posterior_samples[:, i]),
-                        np.max(posterior_samples[:, i]),
-                        100,
-                    )
-                    axes[i, j].plot(
-                        x_vals,
-                        kde(x_vals),
-                        label="Posterior KDE",
-                        color="blue",
-                    )
-                    axes[i, j].set_title(f"Posterior Distribution Param {i+1}")
-                else:
-                    # Off-diagonal: Scatter plot of posterior samples
-                    axes[i, j].scatter(
-                        posterior_samples[:, i],
-                        posterior_samples[:, j],
-                        alpha=0.5,
-                        s=5,
-                    )
-                    axes[i, j].set_title(f"Scatter Param {i+1} vs Param {j+1}")
-                if i == n_params - 1:
-                    axes[i, j].set_xlabel(f"Param {j+1}")
-                if j == 0:
-                    axes[i, j].set_ylabel(f"Param {i+1}")
+        # fig, axes = plt.subplots(n_params, n_params, figsize=(12, 12))
+        g = sns.pairplot(
+            posterior_df.iloc[-2000::5, :],
+            kind="hist",
+            diag_kind="kde",
+        )
+        for i, ax in enumerate(g.diag_axes):
+            ax.axvline(
+                true_values[i],
+                color="0.8",
+                lw=2,
+            )
+            sns.kdeplot(
+                prior_samples.iloc[:, i], ax=ax, alpha=0.5, linestyle="--"
+            )
 
         plt.tight_layout()
         parameters_panel = widgets.Output()
