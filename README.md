@@ -1,3 +1,14 @@
+<div style="float:right">
+    <table>
+    <tr>
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/pangeos-small-1.png" alt="PANGEOS" style="width:200px;height:45px;"/> 
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/kcl_logo.png" alt="King's College London" style="width:54px;height:40px;"/> 
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/nceo_logo.png" alt="NCEO" style="width:200px;height:40px;"/> 
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/multiply_logo.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
+    </tr>
+    </table>
+</div>
+
 # Materials for the PANGEOS Summer School 2024
 ## Radiative transfer inversion and uncertainty propagation
 
@@ -7,6 +18,8 @@ This repository contains a number of codes that demonstrate:
 * The basics of radiative transfer (RT) models for leaves and canopies,
 * Some experiments to *invert the models*
 * The treatment of uncertainty and the role of prior information in inversion.
+
+Here's additional information on the [Summer School'2024](https://pangeos.eu/ss1/)
 
 ### Using the materials
 
