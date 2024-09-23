@@ -40,7 +40,7 @@ def run_simulation(sliders, floattext_widgets, output_widget):
     srf = np.delete(spectral_srf["sentinel2a_msi"], [0, 6, 9, 10], axis=0)
     srf = srf / np.sum(srf, axis=1, keepdims=True)
     the_prior = prior_funcs[parameters["prior_selection"]]
-    biophys = BiophysicalRetrieval(parameters, srf, lut, the_prior)
+    biophys = BiophysicalRetrieval(parameters, srf, lut, the_prior, wvs)
     biophys.simulate_reflectance()
     biophys.propagate_to_toa()
     biophys.correct_to_boa()

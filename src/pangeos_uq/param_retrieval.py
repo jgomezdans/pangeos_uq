@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from IPython.display import display
 import seaborn as sns
-
+from scipy import stats
 
 from typing import Tuple
 
@@ -152,6 +152,7 @@ class BiophysicalRetrieval:
         srf: np.ndarray,
         lut: LUTQuery,
         prior: callable,
+        wvs: np.ndarray,
     ):
         """Initializes the BiophysicalParameterRetrieval class.
 
@@ -165,6 +166,7 @@ class BiophysicalRetrieval:
 
         # N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown
         # 0, 1, 6, 5, 7, 8, 4, 9, 10
+        self.wvs = wvs
         self.x = [
             parameters["N"],  # 0
             parameters["Cab"],  # 1
@@ -336,12 +338,38 @@ class BiophysicalRetrieval:
         )
         posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         true_values = np.array(self.x.copy())[posns]
+        x_mode, x_samples = modal_and_random_samples(
+            self.posterior_samples, 100
+        )
+        this_x = np.array(self.x.copy())
+        this_x[posns] = x_mode
+        rho_canopy_sim_tmp = simulate_spectral_reflectance(
+            this_x, cov_matrix=None
+        )
+        _, rho_canopy_sim_tmp = integrate_spectral_reflectance(
+            rho_canopy_sim_tmp, self.srf
+        )
+
+        rho_canopy_sim = [rho_canopy_sim_tmp]
+        for i in range(x_samples.shape[0]):
+            this_x[posns] = x_mode
+            rho_canopy_sim_tmp = simulate_spectral_reflectance(
+                this_x, cov_matrix=None
+            )
+            _, rho_canopy_sim_tmp = integrate_spectral_reflectance(
+                rho_canopy_sim_tmp, self.srf
+            )
+
+            rho_canopy_sim.append(rho_canopy_sim_tmp)
+
         visualize_panels(
+            self.wvs,
             true_values,
             self.toa_reflectance,
             self.boa_reflectance_sim,
             self.boa_reflectance_ensemble,
             self.posterior_samples,
+            rho_canopy_sim,
             output_panel,
             prior_samples=prior_samples,
         )
@@ -457,9 +485,9 @@ def uncertain_correct_to_boa(
         xap = np.delete(atmos_paramsx["xap"], 6)
         xb = np.delete(atmos_paramsx["xb"], 6)
         xc = np.delete(atmos_paramsx["xc"], 6)
-        xap = xap + 0.05 * np.random.randn(len(xap))
-        xb = xb + 0.05 * np.random.randn(len(xap))
-        xc = xc + 0.05 * np.random.randn(len(xap))
+        xap = xap + 0.005 * np.random.randn(len(xap))
+        xb = xb + 0.005 * np.random.randn(len(xap))
+        xc = xc + 0.005 * np.random.randn(len(xap))
 
         y = xap * toa_reflectance - xb
         rho_boa_corr = np.clip(y / (1.0 + xc * y), 0, 1)
@@ -468,11 +496,13 @@ def uncertain_correct_to_boa(
 
 
 def visualize_panels(
+    wvs: np.ndarray,
     true_values: np.ndarray,
     toa_reflectance: np.ndarray,
     boa_reflectance_sim: np.ndarray,
     boa_reflectance_ensemble: np.ndarray,
     posterior_samples: np.ndarray,
+    rho_canopy_sim: np.ndarray,
     output_panel: widgets.Output,
     prior_samples: np.ndarray | None = None,
 ) -> None:
@@ -485,6 +515,7 @@ def visualize_panels(
         boa_reflectance_ensemble (np.ndarray): Ensemble of BOA reflectance.
         posterior_samples (np.ndarray): Posterior parameter samples.
     """
+    rho_canopy_sim = np.array(rho_canopy_sim)
 
     # Create the Observations Panel
     def create_observations_panel():
@@ -498,28 +529,30 @@ def visualize_panels(
         fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 
         # 1. Plot TOA reflectance
-        axes[0, 0].plot(toa_reflectance, label="TOA Reflectance")
+        axes[0, 0].plot(wvs, toa_reflectance, label="TOA Reflectance")
 
         axes[0, 0].set_title("Top-of-Atmosphere Reflectance")
-        axes[0, 0].set_xlabel("Band")
+        axes[0, 0].set_xlabel("Wavelength [nm]")
         axes[0, 0].set_ylabel("Reflectance")
         axes[0, 0].legend()
 
         # 2. Plot BOA reflectance (mean of ensemble)
         boa_mean = np.mean(np.atleast_2d(boa_reflectance_ensemble), axis=0)
         axes[0, 1].plot(
+            wvs,
             boa_reflectance_ensemble.T,
             color="orange",
             alpha=0.5,
         )
         axes[0, 1].plot(
+            wvs,
             boa_reflectance_sim,
             color="green",
             label="Simulated BOA Reflectance",
         )
 
         axes[0, 1].set_title("Bottom-of-Atmosphere Reflectance")
-        axes[0, 1].set_xlabel("Band")
+        axes[0, 1].set_xlabel("Wavelength [nm]")
         axes[0, 1].set_ylabel("Reflectance")
         axes[0, 1].legend()
 
@@ -530,13 +563,39 @@ def visualize_panels(
             boa_corr, cmap="coolwarm", vmin=-1, vmax=1, interpolation="none"
         )
         axes[1, 0].set_title("Correlation Matrix of BOA Reflectance Errors")
+        axes[1, 0].set_xticks(ticks=range(len(wvs)), labels=wvs, rotation=90)
+        axes[1, 0].set_yticks(ticks=range(len(wvs)), labels=wvs)
         fig.colorbar(im, ax=axes[1, 0])
 
         # 4. Residuals (mean BOA reflectance - TOA reflectance)
-        residuals = boa_mean - toa_reflectance
-        axes[1, 1].plot(residuals, label="Residuals (BOA - TOA)", color="red")
+        residuals = boa_mean - rho_canopy_sim[0]
+        axes[1, 1].plot(
+            wvs,
+            residuals,
+            label="Residuals (BOA meas - sim mod posterior)",
+            color="red",
+        )
+        for i in range(1, len(rho_canopy_sim)):
+            residuals = boa_mean - rho_canopy_sim[0]
+            axes[1, 1].plot(
+                wvs,
+                residuals,
+                label=None,
+                lw=0.5,
+                color="0.8",
+            )
+        # Make plot symmetric around 0
+        (a, b) = axes[1, 1].get_ylim()
+
+        lim = max(np.abs(a), np.abs(b))
+
+        axes[1, 1].set_ylim(-lim - 0.1, lim + 0.1)
+        ticks = np.linspace(-lim, lim, num=5)
+
+        axes[1, 1].set_yticks(ticks)
+        axes[1, 1].axhline(0, color="0.8", lw=1, linestyle="--")
         axes[1, 1].set_title("Residuals")
-        axes[1, 1].set_xlabel("Band")
+        axes[1, 1].set_xlabel("Wavelength [nm]")
         axes[1, 1].set_ylabel("Residual Reflectance")
         axes[1, 1].legend()
 
@@ -595,3 +654,27 @@ def visualize_panels(
     # Add the tab widget to the output panel
     with output_panel:
         display(tab)
+
+
+def modal_and_random_samples(
+    posterior_samples: np.ndarray, N: int
+) -> Tuple[float, np.ndarray]:
+    """
+    Estimate the mode of the posterior distribution and sample N random values.
+
+    Parameters:
+    posterior_samples (np.ndarray): Array of posterior samples.
+    N (int): Number of random samples to draw from the posterior.
+
+    Returns:
+    Tuple[float, np.ndarray]: The mode of the posterior and an array of
+                                N random samples.
+    """
+    # Estimate the mode of the posterior distribution
+    mode = stats.mode(posterior_samples, axis=0)[0]
+
+    # Randomly sample N values from the posterior samples
+    random_samples = posterior_samples[
+        np.random.choice(posterior_samples.shape[0], N, replace=False), :
+    ]
+    return mode, random_samples
