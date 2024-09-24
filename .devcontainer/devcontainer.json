@@ -22,12 +22,13 @@
 	// Configure tool-specific properties.
   "customizations": {
     "vscode": {
+      "settings":{}"python.defaultInterpreterPath": "/opt/conda/envs/base"
+    },
       "extensions": [
         "ms-python.python",
         "ms-toolsai.jupyter",
         "ms-python.vscode-pylance",
         "mhutchie.git-graph",
-        "quarto.quarto",
         "donjayamanne.githistory",
         "GitHub.vscode-pull-request-github",
         "eamodio.gitlens",
