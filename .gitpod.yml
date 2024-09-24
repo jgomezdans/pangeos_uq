@@ -29,4 +29,15 @@ tasks:
 ports:
   - port: 8888
     onOpen: open-browser
+    visibility: public
+vscode:
+  extensions:
+    - ms-python.python
+
+settings:
+    python.defaultInterpreterPath: /workspace/conda/envs/pangeos_uq/bin/python
+
+# Ensure conda environment is activated in all shells
+init:
+  - echo 'source /workspace/conda/bin/activate pangeos_uq' >> ~/.bashrc
 
