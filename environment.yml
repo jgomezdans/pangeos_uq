@@ -9,11 +9,9 @@ dependencies:
     - jupyterlab
     - matplotlib
     - seaborn
-    - ipywidgets
     - ipykernel
     - ipympl
-    - ipywidgets
-    - ipyleaflet
+    - ipywidgets>7.6.0
     - h5py
     - pandas
     - tqdm
