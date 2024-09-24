@@ -27,17 +27,17 @@ tasks:
     jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
 
 - name: vscode settings
-    init: |
-      mkdir -p "$PWD/.vscode";
-      cat << 'EOF' > "$PWD/.vscode/settings.json"
-      {
-        "python.defaultInterpreterPath": "/workspace/conda/env/pangeos_uq/bin/mamba",
+  init: |
+    mkdir -p "$PWD/.vscode";
+    cat << 'EOF' > "$PWD/.vscode/settings.json"
+    {
+      "python.defaultInterpreterPath": "/workspace/conda/env/pangeos_uq/bin/mamba",
         "python.pythonPath": "/workspace/conda/env/pangeos_uq",
-      }
-      EOF
-      cat << 'EOF' > "$PWD/.vscode/.env"
-      EOF
-    command: exit
+    }
+    EOF
+    cat << 'EOF' > "$PWD/.vscode/.env"
+    EOF
+  command: exit
 
 ports:
   - port: 8888
