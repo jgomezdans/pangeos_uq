@@ -26,18 +26,25 @@ tasks:
     echo "Starting Jupyter Lab in the notebooks folder..."
     jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
 
+- name: vscode settings
+    init: |
+      mkdir -p "$PWD/.vscode";
+      cat << 'EOF' > "$PWD/.vscode/settings.json"
+      {
+        "python.defaultInterpreterPath": "/workspace/conda/env/pangeos_uq/bin/mamba",
+        "python.pythonPath": "/workspace/conda/env/pangeos_uq",
+      }
+      EOF
+      cat << 'EOF' > "$PWD/.vscode/.env"
+      EOF
+    command: exit
+
 ports:
   - port: 8888
     onOpen: open-browser
     visibility: public
+
 vscode:
   extensions:
     - ms-python.python
-
-settings:
-    python.defaultInterpreterPath: /workspace/conda/envs/pangeos_uq/bin/python
-
-# Ensure conda environment is activated in all shells
-init:
-  - echo 'source /workspace/conda/bin/activate pangeos_uq' >> ~/.bashrc
-
+    - ms-toolsai.jupyter
