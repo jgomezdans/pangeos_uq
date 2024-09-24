@@ -3,8 +3,8 @@ channels:
     - jgomezdans
     - conda-forge
 dependencies:
-    - python>3.9
-    - numpy
+    - python>3.11
+    - numpy<2.0
     - scipy
     - jupyterlab
     - matplotlib

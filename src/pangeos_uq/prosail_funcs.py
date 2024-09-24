@@ -244,7 +244,20 @@ def prospect_sensitivity_n(
 
 def visualise_effect_nlayers(
     n_samples: int = 50,
-    bands: List[int] = [560, 665, 705, 740, 783, 842, 865, 945, 1610, 2090],
+    bands: List[int] = [
+        560,
+        665,
+        705,
+        740,
+        783,
+        800,
+        842,
+        865,
+        945,
+        1121,
+        1610,
+        2090,
+    ],
 ) -> None:
     """
     Visualises the effect of varying leaf structure (N layers) on the ratio
@@ -256,7 +269,7 @@ def visualise_effect_nlayers(
     n_samples : int, optional
         Number of samples for the leaf structure parameter N. Default is 50.
     bands : List[int], optional
-        List of wavelength bands (in nm) to visualize. Default includes 10
+        List of wavelength bands (in nm) to visualize. Default includes 12
         common bands.
 
     Returns
@@ -270,8 +283,8 @@ def visualise_effect_nlayers(
     wv = np.arange(400, 2501)
     xleafn, refl, trans = prospect_sensitivity_n(n_samples)
 
-    # Create the subplots: 5 rows, 2 columns
-    fig, axs = plt.subplots(nrows=5, ncols=2, figsize=(8, 8), sharex=True)
+    # Create the subplots: 4 rows, 3 columns
+    fig, axs = plt.subplots(nrows=4, ncols=3, figsize=(8, 8), sharex=True)
     axs = axs.flatten()
 
     # Loop through each band and plot the ratio of reflectance to transmittance
@@ -291,10 +304,12 @@ def visualise_effect_nlayers(
         axs[i].plot(xleafn, np.polyval(p, xleafn), "-", label="Fit")
 
         # Set plot title and axis limits
-        axs[i].set_title(f"Band {band} nm")
+        axs[i].set_title(f"Band {band} nm {p[0]:.2f}")
         axs[i].set_ylim(0, 4)
-        axs[i].legend()
-
+        axs[i].set_ylabel(r"$\rho(N)/\tau(N)$", fontsize=9)
+        axs[i].set_xlabel(r"$N$ layers", fontsize=9)
+    #        axs[i].legend()
+    axs[-1].set_visible(False)
     # Adjust layout to prevent overlap of subplots
     fig.tight_layout()
 
