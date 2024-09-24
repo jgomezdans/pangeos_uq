@@ -10,22 +10,33 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/python": {
-      "version": "3.11"
+      "version": "3.12"
     }
   },
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [8888],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "python --version && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token=''",
+	"postCreateCommand": "conda init && python --version && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token=''",
 
 	// Configure tool-specific properties.
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-toolsai.jupyter"
-      ]
+        "ms-toolsai.jupyter",
+        "ms-python.vscode-pylance",
+        "mhutchie.git-graph",
+        "quarto.quarto",
+        "donjayamanne.githistory",
+        "GitHub.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "ms-python.isort",
+        "ms-toolsai.vscode-jupyter-cell-tags",
+        "ms-toolsai.vscode-jupyter-powertoys",
+        "docsmsft.docs-markdown",
+        "ms-python.pylint"
+    ]
     }
   },
   "remoteUser": "vscode"
