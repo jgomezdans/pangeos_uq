@@ -17,12 +17,12 @@
 	"forwardPorts": [8888],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "conda init && python --version && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token=''",
+	"postCreateCommand": "conda init &&  jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token=''",
 
 	// Configure tool-specific properties.
   "customizations": {
     "vscode": {
-      "settings":{}"python.defaultInterpreterPath": "/opt/conda/envs/base"
+      "settings":{"python.defaultInterpreterPath": "/opt/conda/envs/base"
     },
       "extensions": [
         "ms-python.python",
