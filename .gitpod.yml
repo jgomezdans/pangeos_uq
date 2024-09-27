@@ -1,15 +1,13 @@
 # .gitpod.yml
-image: .gitpod.Dockerfile  # or any suitable base image with Python
+image: condaforge/mambaforge # or any suitable base image with Python
 
 tasks:
   - name: install mamba and pangrelos_uq environment
     init: |
-      which python
-      
-  - name: Set up conda
-    command: |
-      # Activate the conda environment
+      mamba env create  --file /workspace/pangeos_uq/environment.yml
+      mamba clean --all -y
       conda activate pangeos_uq
+      
 
   - name: start jupyter lab
     command: |
