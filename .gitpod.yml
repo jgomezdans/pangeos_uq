@@ -7,24 +7,34 @@ tasks:
       echo "Downloading mambaforge..."
       curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
       echo "Installing mambaforge..."
-      bash Mambaforge-$(uname)-$(uname -m).sh -b -p /opt/miniconda && rm Mambaforge-$(uname)-$(uname -m).sh
-      export PATH="/opt/miniconda/bin:$PATH"
+      bash Mambaforge-$(uname)-$(uname -m).sh -b -p /workspace/conda && rm Mambaforge-$(uname)-$(uname -m).sh
+      export PATH="/workspace/conda/bin:$PATH"
       conda init bash
       source ~/.bashrc
       conda env create -f environment.yml
       echo "conda activate pangeos_uq" >> ~/.bashrc
       conda activate pangeos_uq
       which python
-
+      cat <<EOT > /workspace/activate-env.sh
+      export MAMBA_ROOT_PREFIX=/workspace/conda/.micromamba
+      export MAMBA_EXE=/workspace/conda/bin/micromamba
+      $(/workspace/conda/bin/conda shell hook --shell=bash)
+      conda config append channels conda-forge
+      export JUPYTER_PREFER_ENV_PATH=1
+      conda activate
+      EOT
+      source /workspace/bin/activate-env.sh
   - name: Set up conda
     command: |
       # Activate the conda environment
-      export PATH="/opt/miniconda/bin:$PATH"
+      export PATH="/workspace/bin/conda/bin:$PATH"
+      source /workspace/bin/activate-env.sh
       conda activate pangeos_uq
 
   - name: start jupyter lab
     command: |
-      export PATH="/opt/miniconda/bin:$PATH"
+      export PATH="/workspace/bin/conda/bin:$PATH"
+      source /workspace/bin/activate-env.sh
       conda activate pangeos_uq
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
