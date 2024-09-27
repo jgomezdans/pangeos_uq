@@ -4,21 +4,30 @@ image: condaforge/mambaforge # or any suitable base image with Python
 tasks:
   - name: install mamba and pangrelos_uq environment
     init: |
+      # Source Conda's initialization script
       . /opt/conda/etc/profile.d/conda.sh
       conda activate base
-      sleep 5
-      conda env update  --name base --file /workspace/pangeos_uq/environment.yml --prune
+
+      # Create the environment in a user-writable directory (e.g., /workspace)
+      conda env create --prefix /workspace/conda-env --file /workspace/pangeos_uq/environment.yml 
       mamba clean --all -y
-      conda activate pangeos_uq
-      mkdir -p .vscode
-      echo '{"python.pythonPath": "/home/gitpod/.conda/envs/pangeos_uq/bin/python"}' > .vscode/settings.json
+
+      # Activate the environment in future terminal sessions
+      echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+      echo "conda activate /workspace/conda-env" >> ~/.bashrc
+
+      # Set up VSCode to use the Conda environment
+      mkdir -p /workspace/.vscode
+      echo '{"python.pythonPath": "/workspace/conda-env/bin/python"}' > /workspace/.vscode/settings.json
       
 
   - name: start jupyter lab
     command: |
+      # Activate the Conda environment
       . /opt/conda/etc/profile.d/conda.sh
-      conda activate pangeos_uq
-      # Launch JupyterLab on a specified port (8888 is default)
+      conda activate /workspace/conda-env
+
+      # Launch JupyterLab
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
 
 ports:
