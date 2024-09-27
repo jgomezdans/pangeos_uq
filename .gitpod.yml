@@ -7,7 +7,7 @@ tasks:
       . /opt/conda/etc/profile.d/conda.sh
       conda activate base
       sleep 5
-      mamba env create -n pangeos_uq  --file /workspace/pangeos_uq/environment.yml
+      conda env update  --name base --file /workspace/pangeos_uq/environment.yml --prune
       mamba clean --all -y
       conda activate pangeos_uq
       mkdir -p .vscode
