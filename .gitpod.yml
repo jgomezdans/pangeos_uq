@@ -2,8 +2,8 @@
 image: gitpod/workspace-full  # or any suitable base image with Python
 
 tasks:
-    - name : install mamba and pangrelos_uq environment
-      init: |
+  - name: install mamba and pangrelos_uq environment
+    init: |
       echo "Downloading mambaforge..."
       curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
       echo "Installing mambaforge..."
@@ -15,14 +15,14 @@ tasks:
       echo "conda activate pangeos_uq" >> ~/.bashrc
       conda activate pangeos_uq
       which python
-    
-    - name: Set up conda
-      command: |
+
+  - name: Set up conda
+    command: |
       # Activate the conda environment
       conda activate pangeos_uq
 
-    - name: start jupyter lab
-      command: |
+  - name: start jupyter lab
+    command: |
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
 
