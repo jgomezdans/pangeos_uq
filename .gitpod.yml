@@ -7,9 +7,9 @@ tasks:
       echo "Downloading mambaforge..."
       curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
       echo "Installing mambaforge..."
-      bash Mambaforge-$(uname)-$(uname -m).sh -b -p /opc/miniconda && rm Mambaforge-$(uname)-$(uname -m).sh
+      bash Mambaforge-$(uname)-$(uname -m).sh -b -p /opt/miniconda && rm Mambaforge-$(uname)-$(uname -m).sh
       export PATH="/opt/miniconda/bin:$PATH"
-      mamba init bash
+      conda init bash
       source ~/.bashrc
       conda env create -f environment.yml
       echo "conda activate pangeos_uq" >> ~/.bashrc
