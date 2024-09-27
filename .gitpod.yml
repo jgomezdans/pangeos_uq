@@ -14,7 +14,7 @@ tasks:
       conda env create -f environment.yml
       echo "conda activate pangeos_uq" >> ~/.bashrc
       conda activate pangeos_uq
-      which ptyhon
+      which python
     
     - name: Set up conda
       command: |
