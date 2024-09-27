@@ -1,35 +1,19 @@
 # .gitpod.yml
-image: gitpod/workspace-full  # or any suitable base image with Python
+image: .gitpod.Dockerfile  # or any suitable base image with Python
 
 tasks:
   - name: install mamba and pangrelos_uq environment
     init: |
-      echo "Downloading mambaforge..."
-      curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-      echo "Installing mambaforge..."
-      bash Mambaforge-$(uname)-$(uname -m).sh -b -p /workspace/conda && rm Mambaforge-$(uname)-$(uname -m).sh
-      export PATH="/workspace/conda/bin:$PATH"
-      /workspace/conda/bin/conda init bash
-      source ~/.bashrc
-      /workspace/conda/bin/conda env create -f environment.yml
-      echo "/workspace/conda/bin/conda activate pangeos_uq" >> ~/.bashrc
-      /workspace/conda/bin/conda activate pangeos_uq
       which python
       
   - name: Set up conda
     command: |
       # Activate the conda environment
-      export PATH="/workspace/conda/bin:$PATH"
-      /workspace/conda/bin/conda init bash
-      source ~/.bashrc
-      /workspace/conda/bin/conda activate pangeos_uq
+      conda activate pangeos_uq
 
   - name: start jupyter lab
     command: |
-      export PATH="/workspace/conda/bin:$PATH"
-      /workspace/conda/bin/conda init bash
-      source ~/.bashrc
-      /workspace/conda/bin/conda activate pangeos_uq
+      conda activate pangeos_uq
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
 
