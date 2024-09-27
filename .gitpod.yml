@@ -23,6 +23,8 @@ tasks:
 
   - name: start jupyter lab
     command: |
+      export PATH="$HOME/miniconda/bin:$PATH"
+      conda activate pangeos_uq
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
 
@@ -36,7 +38,7 @@ vscode:
     - ms-toolsai.jupyter
     - ms-toolsai.jupyter-keymap
     - ms-toolsai.jupyter-renderers
-    
+
 # image: gitpod/workspace-base
 
 # tasks:
