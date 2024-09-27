@@ -5,7 +5,7 @@ tasks:
   - name: install mamba and pangrelos_uq environment
     init: |
       # Source Conda's initialization script
-      . /opt/conda/etc/profile.d/conda.sh
+      /bin/bash /opt/conda/etc/profile.d/conda.sh
       conda activate base
 
       # Create the environment in a user-writable directory (e.g., /workspace)
@@ -13,7 +13,7 @@ tasks:
       mamba clean --all -y
 
       # Activate the environment in future terminal sessions
-      echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+      echo "/bin/bash /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
       echo "conda activate /workspace/conda-env" >> ~/.bashrc
 
       # Set up VSCode to use the Conda environment
@@ -24,7 +24,7 @@ tasks:
   - name: start jupyter lab
     command: |
       # Activate the Conda environment
-      . /opt/conda/etc/profile.d/conda.sh
+      /bin/bash /opt/conda/etc/profile.d/conda.sh
       conda activate /workspace/conda-env
 
       # Launch JupyterLab

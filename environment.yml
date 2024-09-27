@@ -10,6 +10,9 @@ dependencies:
     - matplotlib
     - seaborn
     - ipykernel
+    - jupyter_client
+    - matplotlib-inline
+    - ipython
     - ipympl
     - ipywidgets>7.6.0
     - h5py
