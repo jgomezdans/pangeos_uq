@@ -20,11 +20,15 @@ tasks:
     command: |
       # Activate the conda environment
       export PATH="/workspace/conda/bin:$PATH"
+      /workspace/conda/bin/conda init bash
+      source ~/.bashrc
       /workspace/conda/bin/conda activate pangeos_uq
 
   - name: start jupyter lab
     command: |
       export PATH="/workspace/conda/bin:$PATH"
+      /workspace/conda/bin/conda init bash
+      source ~/.bashrc
       /workspace/conda/bin/conda activate pangeos_uq
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
