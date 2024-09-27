@@ -7,16 +7,17 @@ tasks:
       conda activate pangeos_uq
 
     init: |
-      # Install mambaforge (if needed) and set up the environment
-      curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh" -o miniconda.sh
-      bash miniconda.sh -b -p $HOME/miniconda
+      echo "Downloading mambaforge..."
+      curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+      echo "Installing mambaforge..."
+      bash Mambaforge-$(uname)-$(uname -m).sh -b -p $HOME/miniconda && rm Mambaforge-$(uname)-$(uname -m).sh
       export PATH="$HOME/miniconda/bin:$PATH"
-      conda init bash
+      mamba init bash
       source ~/.bashrc
       conda env create -f environment.yml
       echo "conda activate pangeos_uq" >> ~/.bashrc
       conda activate pangeos_uq
-
+      which ptyhon
     command: |
       # Launch JupyterLab on a specified port (8888 is default)
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
