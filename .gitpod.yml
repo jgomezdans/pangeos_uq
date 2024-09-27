@@ -24,16 +24,19 @@ tasks:
   - name: start jupyter lab
     command: |
       # Launch JupyterLab on a specified port (8888 is default)
-      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
 
 ports:
   - port: 8888
     onOpen: open-browser  # Automatically open the JupyterLab interface in the browser
 
 vscode:
-  # Disable VS Code completely
-  extensions: []
-
+  extensions:
+    - ms-python.python
+    - ms-toolsai.jupyter
+    - ms-toolsai.jupyter-keymap
+    - ms-toolsai.jupyter-renderers
+    
 # image: gitpod/workspace-base
 
 # tasks:
