@@ -15,7 +15,7 @@ tasks:
       # Activate the environment in future terminal sessions
       echo "/bin/bash /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
       echo "conda activate /workspace/conda-env" >> ~/.bashrc
-
+      /opt/conda/bin/conda activate /workspace/conda-env
       # Set up VSCode to use the Conda environment
       mkdir -p /workspace/.vscode
       echo '{"python.pythonPath": "/workspace/conda-env/bin/python"}' > /workspace/.vscode/settings.json
@@ -23,9 +23,12 @@ tasks:
 
   - name: start jupyter lab
     command: |
+      /opt/conda/bin/conda init bash
+      /bin/bash /opt/conda/etc/profile.d/conda.sh
+      /opt/conda/bin/conda activate /workspace/conda-env
       # Activate the Conda environment
       /bin/bash /opt/conda/etc/profile.d/conda.sh
-      conda activate /workspace/conda-env
+      /opt/conda/bin/conda activate /workspace/conda-env
 
       # Launch JupyterLab
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
