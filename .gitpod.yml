@@ -1,89 +1,26 @@
-# .gitpod.yml
-image: gitpod/workspace-full  # or any suitable base image with Python
-
 tasks:
-  - before: |
-      echo "Setting up the environment..."
-      conda activate pangeos_uq
-
+  - name: setup
     init: |
-      echo "Downloading mambaforge..."
-      curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-      echo "Installing mambaforge..."
-      bash Mambaforge-$(uname)-$(uname -m).sh -b -p $HOME/miniconda && rm Mambaforge-$(uname)-$(uname -m).sh
-      export PATH="$HOME/miniconda/bin:$PATH"
-      mamba init bash
-      source ~/.bashrc
-      conda env create -f environment.yml
-      echo "conda activate pangeos_uq" >> ~/.bashrc
-      conda activate pangeos_uq
-      which ptyhon
+      pushd /workspace
+      wget -qO- https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+      popd
+      # bootstrap activation commands for other tasks to reuse
+      cat <<EOT > /workspace/bin/activate-env.sh
+      export MAMBA_ROOT_PREFIX=/workspace/.micromamba
+      export MAMBA_EXE=/workspace/bin/micromamba
+      $(/workspace/bin/micromamba shell hook --shell=bash)
+      micromamba config append channels jgomezdans conda-forge
+      export JUPYTER_PREFER_ENV_PATH=1
+      micromamba activate
+      EOT
+      source /workspace/bin/activate-env.sh
+      micromamba install -n base -y -f /workspace/pangeos_uq/environment.yml
+      gp sync-done setup
     command: |
-      # Launch JupyterLab on a specified port (8888 is default)
-      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
+      gp sync-done setup
+      source /workspace/bin/activate-env.sh
+      jupyter lab --no-browser --ServerApp.allow_remote_access=True --ServerApp.token=''
+
 
 ports:
   - port: 8888
-    onOpen: open-browser  # Automatically open the JupyterLab interface in the browser
-
-vscode:
-  # Disable VS Code completely
-  extensions: []
-
-# image: gitpod/workspace-base
-
-# tasks:
-# - name: install mamba and pangrelos_uq environment
-#   init: |
-#     curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-#     bash Mambaforge-$(uname)-$(uname -m).sh -b -p /workspace/conda && rm Mambaforge-$(uname)-$(uname -m).sh
-#     /workspace/conda/bin/mamba init bash
-
-#     source ${HOME}/.bashrc
-
-#     mamba env create  --file /workspace/pangeos_uq/environment.yml
-
-#     mamba clean --all -y
-
-#     mamba activate pangeos_uq
-
-#     mkdir -p "$PWD/.vscode";
-#     cat << 'EOF' > "$PWD/.vscode/settings.json"
-#     {
-#         "python.defaultInterpreterPath": "/workspace/conda/env/pangeos_uq/bin/mamba",
-#         "python.pythonPath": "/workspace/conda/env/pangeos_uq",
-#     }
-#     EOF
-#     cat << 'EOF' > "$PWD/.vscode/.env"
-#     EOF
-
-#     cd /workspace
-
-#   command: |
-#     /workspace/conda/bin/mamba init bash
-#     source ~/.bashrc
-#     mamba activate pangeos_uq
-#     mkdir -p "$PWD/.vscode";
-#     cat << 'EOF' > "$PWD/.vscode/settings.json"
-#     {
-#         "python.defaultInterpreterPath": "/workspace/conda/env/pangeos_uq/bin/mamba",
-#         "python.pythonPath": "/workspace/conda/env/pangeos_uq",
-#     }
-#     EOF
-#     cat << 'EOF' > "$PWD/.vscode/.env"
-#     EOF
-
-#     cd /workspace
-
-#     echo "Starting Jupyter Lab in the notebooks folder..."
-#     jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token='' --notebook-dir=/workspace/pangeos_uq/notebooks
-
-# ports:
-#   - port: 8888
-#     onOpen: open-browser
-#     visibility: public
-
-# vscode:
-#   extensions:
-#     - ms-python.python
-#     - ms-toolsai.jupyter
