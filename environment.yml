@@ -18,9 +18,10 @@ dependencies:
     - h5py
     - pandas
     - tqdm
-    - prosail
-    - pangeos_uq
+    - git
     - pip
     - pip:
         - pcse
         - git+https://github.com/jgomezdans/gp_emulator
+        - git+https://github.com/jgomezdans/prosail
+        - git+https://github.com/jgomezdans/pangeos_uq
