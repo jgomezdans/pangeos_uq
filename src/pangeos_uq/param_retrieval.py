@@ -604,6 +604,9 @@ def visualize_panels(
         with observations_panel:
             plt.show()
 
+        fname_out = f"{dt.datetime.now().isoformat()}_observation_plots.pdf"
+        fig.savefig(fname_out, dpi=300, bbox_inches="tight")
+
         return observations_panel
 
     # Create the Parameters Panel
@@ -635,9 +638,12 @@ def visualize_panels(
             )
 
         plt.tight_layout()
+
         parameters_panel = widgets.Output()
         with parameters_panel:
             plt.show()
+        fname_out = f"{dt.datetime.now().isoformat()}_posterior_plots.pdf"
+        g.savefig(fname_out, dpi=300, bbox_inches="tight")
 
         return parameters_panel
 

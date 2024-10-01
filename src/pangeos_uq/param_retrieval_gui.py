@@ -44,7 +44,7 @@ def run_simulation(sliders, floattext_widgets, output_widget):
     biophys.simulate_reflectance()
     biophys.propagate_to_toa()
     biophys.correct_to_boa()
-    biophys.run_mcmc(n_samples=50_000)
+    biophys.run_mcmc(n_samples=parameters["n_iterations"])
     biophys.plot_posterior(output_widget)
 
 
@@ -101,6 +101,15 @@ def create_prosail_gui(boundaries: dict):
         description="Thermal Noise in percent:",
         readout=True,
         readout_format=".1f",
+    )
+    sliders["n_iterations"] = widgets.IntSlider(
+        value=10_000,
+        min=5_000,
+        max=100_000,
+        step=1000,
+        description=" # MCMC iter.",
+        readout=True,
+        readout_format="d",
     )
     # FloatText widgets for uncertainties
     floattext_widgets = {
@@ -213,6 +222,7 @@ def create_prosail_gui(boundaries: dict):
             floattext_widgets["TCWV_unc"],
             sliders["noise_unc"],
             sliders["prior_selection"],
+            sliders["n_iterations"],
             spacer,  # This spacer will take up the remaining space
             button_box,
         ],

@@ -22,6 +22,8 @@ This repository contains a number of codes that demonstrate:
 Here's additional information on the [Summer School'2024](https://pangeos.eu/ss1/)
 
 ### Using the materials
+[![Edit with Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/jgomezdans/pangeos_uq)
+
 
 #### Installation
 
