@@ -25,6 +25,7 @@ tasks:
 
   - name: start jupyter lab
     command: |
+      bash
       /opt/conda/bin/conda init bash
       /bin/bash /opt/conda/etc/profile.d/conda.sh
       /opt/conda/bin/conda activate /workspace/conda-env
