@@ -5,6 +5,9 @@
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/kcl_logo.png" alt="King's College London" style="width:54px;height:40px;"/> 
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/nceo_logo.png" alt="NCEO" style="width:200px;height:40px;"/> 
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/multiply_logo.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/cost_logo.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/eu_emblem.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
+
     </tr>
     </table>
 </div>
@@ -35,3 +38,6 @@ There are detailed instructions on how to install the software in the [Wiki page
 
 ### Additional software
 The notebooks make use of codes defined in the `pangeos_uq` Python package. These are found in the `src/` folder in the main repository. Feel free to have a look and poke around. Improvements and bugfixes are welcomed, make sure you let me know by flagging a [Github Issue report]().
+
+## Acknowledgements
+This repository is based upon work from COST Action PANGEOS CA22136, supported by [COST (European Cooperation in Science and Technology)](https://www.cost.eu/).The work was also supported by the [National Centre for Earth Observation (NCEO)](https://www.nceo.ac.uk/), and [King's College London](https://www.kcl.ac.uk/).
