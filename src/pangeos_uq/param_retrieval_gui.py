@@ -107,7 +107,7 @@ def create_prosail_gui(boundaries: dict):
         min=5_000,
         max=100_000,
         step=1000,
-        description="Number of MCMC iterations:",
+        description=" # MCMC iter.",
         readout=True,
         readout_format="d",
     )
