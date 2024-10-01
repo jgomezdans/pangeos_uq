@@ -17,6 +17,7 @@ tasks:
       conda activate /workspace/conda-env
       # Activate the environment in future terminal sessions
       echo "/bin/bash /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
+      echo "conda init" >> ~/.bashrc
       echo "conda activate /workspace/conda-env" >> ~/.bashrc
       /opt/conda/bin/conda activate /workspace/conda-env
       # Set up VSCode to use the Conda environment
@@ -26,16 +27,18 @@ tasks:
 
   - name: start jupyter lab
     command: |
-    
-      conda env create --prefix /workspace/conda-env --file /workspace/pangeos_uq/environment.yml 
-      mamba clean --all -y
+      conda init
+      conda activate /worksopace/conda-env
 
-      /opt/conda/bin/conda init bash
-      /bin/bash /opt/conda/etc/profile.d/conda.sh
-      /opt/conda/bin/conda activate /workspace/conda-env
-      # Activate the Conda environment
-      /bin/bash /opt/conda/etc/profile.d/conda.sh
-      /opt/conda/bin/conda activate /workspace/conda-env
+      # conda env create --prefix /workspace/conda-env --file /workspace/pangeos_uq/environment.yml 
+      # mamba clean --all -y
+
+      # /opt/conda/bin/conda init bash
+      # /bin/bash /opt/conda/etc/profile.d/conda.sh
+      # /opt/conda/bin/conda activate /workspace/conda-env
+      # # Activate the Conda environment
+      # /bin/bash /opt/conda/etc/profile.d/conda.sh
+      # /opt/conda/bin/conda activate /workspace/conda-env
 
       # Launch JupyterLab
       jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password=''
