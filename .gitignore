@@ -5,6 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
+#
+# Ignore plots and output from notebook 8
+notebooks/2024*.pdf
+notebooks/2024*.npz
 
 # Distribution / packaging
 .Python

@@ -319,7 +319,10 @@ class BiophysicalRetrieval:
             )
         )
         parameter_names = param_names + ["psoil", "rsoil"]
-        fname_out = f"{dt.datetime.now().isoformat()}_posterior_samples.npz"
+        fname_out = (
+            f"{dt.datetime.now().isoformat().replace(':', '-')}"
+            + "_posterior_samples.npz"
+        )
         true_values = np.array(self.x.copy())[posns]
         np.savez(
             fname_out,
@@ -604,7 +607,11 @@ def visualize_panels(
         with observations_panel:
             plt.show()
 
-        fname_out = f"{dt.datetime.now().isoformat()}_observation_plots.pdf"
+        fname_out = (
+            f"{dt.datetime.now().isoformat().replace(':', '-')}"
+            + "_observation_plots.pdf"
+        )
+
         fig.savefig(fname_out, dpi=300, bbox_inches="tight")
 
         return observations_panel
@@ -642,7 +649,11 @@ def visualize_panels(
         parameters_panel = widgets.Output()
         with parameters_panel:
             plt.show()
-        fname_out = f"{dt.datetime.now().isoformat()}_posterior_plots.pdf"
+        fname_out = (
+            f"{dt.datetime.now().isoformat().replace(':', '-')}"
+            + "_parameter_plots.pdf"
+        )
+
         g.savefig(fname_out, dpi=300, bbox_inches="tight")
 
         return parameters_panel
