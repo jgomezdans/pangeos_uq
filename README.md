@@ -5,8 +5,8 @@
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/kcl_logo.png" alt="King's College London" style="width:54px;height:40px;"/> 
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/nceo_logo.png" alt="NCEO" style="width:200px;height:40px;"/> 
         <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/multiply_logo.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
-        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/cost_logo.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
-        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/eu_emblem.png" alt="H2020 Multiply" style="width:40px;height:40px;"/>
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/cost_logo.png" alt="COST logo" style="width:100px;height:40px;"/>
+        <td> <img src="https://github.com/jgomezdans/pangeos_uq/blob/main/figs/eu_emblem.png" alt="Funded by EU" style="width:800px;height:40px;"/>
 
     </tr>
     </table>
