@@ -44,7 +44,7 @@ def run_simulation(sliders, floattext_widgets, output_widget):
     biophys.simulate_reflectance()
     biophys.propagate_to_toa()
     biophys.correct_to_boa()
-    biophys.run_mcmc(n_samples=50_000)
+    biophys.run_mcmc(n_samples=10_000)
     biophys.plot_posterior(output_widget)
 
 
