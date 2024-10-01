@@ -6,11 +6,13 @@ tasks:
     init: |
       # Source Conda's initialization script
       /bin/bash /opt/conda/etc/profile.d/conda.sh
+      conda init
       conda activate base
 
       # Create the environment in a user-writable directory (e.g., /workspace)
       conda env create --prefix /workspace/conda-env --file /workspace/pangeos_uq/environment.yml 
       mamba clean --all -y
+
 
       # Activate the environment in future terminal sessions
       echo "/bin/bash /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
