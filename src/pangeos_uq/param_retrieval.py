@@ -388,6 +388,9 @@ class BiophysicalRetrievalInSitu:
         meas_refl: np.ndarray,
         meas_uncertainty: np.ndarray,
         srf: np.ndarray,
+        sza: float,
+        vza: float,
+        raa: float,
         prior: callable,
         wvs: np.ndarray,
     ) -> None:
@@ -433,6 +436,7 @@ class BiophysicalRetrievalInSitu:
         self.wvs = wvs
         self.srf = srf
         self.meas_refl = meas_refl
+        # NOTE Need to do something about sza, vza and raa
 
     def cost_function(self, x: np.ndarray) -> float:
         """
@@ -472,7 +476,7 @@ class BiophysicalRetrievalInSitu:
 
         if len(initial_value) != 9:
             initial_value = np.concatenate((initial_value, [0.5, 0.5]))
-        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        # posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         # initial_value = np.array(self.x.copy())[posns]
         trans_vector = (max_vals - min_vals) / 100.0
         self.posterior_samples = np.array(
@@ -498,9 +502,9 @@ class BiophysicalRetrievalInSitu:
         """
         Visualizes the results in two panels: Observations and Parameters.
         """
-        prior_samples = sample_prior_distribution(
-            self.prior.name, n_samples=300
-        )
+        # prior_samples = sample_prior_distribution(
+        #     self.prior.name, n_samples=300
+        # )
         posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         x_mode, x_samples = modal_and_random_samples(
             self.posterior_samples, 100
@@ -526,14 +530,14 @@ class BiophysicalRetrievalInSitu:
 
             rho_canopy_sim.append(rho_canopy_sim_tmp)
 
-        visualize_panels_insitu(
-            self.wvs,
-            self.meas_refl,
-            self.posterior_samples,
-            rho_canopy_sim,
-            output_panel,
-            prior_samples=prior_samples,
-        )
+        # visualize_panels_insitu(
+        #     self.wvs,
+        #     self.meas_refl,
+        #     self.posterior_samples,
+        #     rho_canopy_sim,
+        #     output_panel,
+        #     prior_samples=prior_samples,
+        # )
 
 
 def simulate_spectral_reflectance(
