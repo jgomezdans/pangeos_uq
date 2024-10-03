@@ -197,7 +197,6 @@ class BiophysicalRetrieval:
             parameters["AOT_unc"],
             parameters["TCWV_unc"],
         )
-        print(self.atmospheric_parameters)
 
         # Store the spectral response function
         self.srf = srf
@@ -371,6 +370,165 @@ class BiophysicalRetrieval:
             self.toa_reflectance,
             self.boa_reflectance_sim,
             self.boa_reflectance_ensemble,
+            self.posterior_samples,
+            rho_canopy_sim,
+            output_panel,
+            prior_samples=prior_samples,
+        )
+
+
+class BiophysicalRetrievalInSitu:
+    """A class to invert surface reflectance data collected in situ.
+    Takes an estimate of reflectance and associated uncertainty,
+    spectral response functions, prior definition.
+    """
+
+    def __init__(
+        self,
+        meas_refl: np.ndarray,
+        meas_uncertainty: np.ndarray,
+        srf: np.ndarray,
+        prior: callable,
+        wvs: np.ndarray,
+    ) -> None:
+        # Check array sizes and stuff
+        n_bands = len(wvs)
+
+        if len(meas_refl) != n_bands:
+            raise ValueError(
+                f"Expected meas_refl to have length {n_bands}, "
+                f"but got {len(meas_refl)}."
+            )
+
+        if srf.shape[0] != n_bands:
+            raise ValueError(
+                f"Expected the first dimension of srf to be {n_bands}, "
+                f"but got {srf.shape[0]}."
+            )
+
+        if meas_uncertainty.ndim == 1:
+            if len(meas_uncertainty) != n_bands:
+                raise ValueError(
+                    "Expected meas_uncertainty vector to have ",
+                    f"length {n_bands}, " f"but got {len(meas_uncertainty)}.",
+                )
+        elif meas_uncertainty.ndim == 2:
+            if meas_uncertainty.shape != (n_bands, n_bands):
+                raise ValueError(
+                    "Expected meas_uncertainty matrix to be of shape",
+                    f" ({n_bands}, {n_bands}), "
+                    f"but got {meas_uncertainty.shape}.",
+                )
+        else:
+            raise ValueError(
+                "meas_uncertainty must be either a 1D vector or a 2D",
+                " square matrix.",
+            )
+        if meas_uncertainty.ndim == 1:
+            # We only get standard deviations, assume diagonal
+            # observational uncertainty matrix
+            self.inv_obs_cov(np.eye(n_bands) / meas_uncertainty**2)
+        else:
+            self.inv_obs_cov = np.linalg.inv(meas_uncertainty)
+        self.wvs = wvs
+        self.srf = srf
+        self.meas_refl = meas_refl
+
+    def cost_function(self, x: np.ndarray) -> float:
+        """
+        Computes samples for the (log) posterior calculations.
+
+        Args:
+            x (np.ndarray): Biophysical parameters to invert.
+
+        Returns:
+            float: The computed cost value.
+        """
+        x_full = np.array(self.x.copy())
+        # N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown'
+        # posns = np.array([0, 1, 4, 5, 6, 7, 8, 9, 10])
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        x_full[posns] = x
+        prior_cost = self.prior(x)
+        if np.isneginf(prior_cost):
+            return -np.inf
+        rho_canopy_sim = simulate_spectral_reflectance(x_full, cov_matrix=None)
+        _, rho_canopy_sim = integrate_spectral_reflectance(
+            rho_canopy_sim, self.srf
+        )
+        diff = self.meas_refl - rho_canopy_sim
+        obs_cost = -0.5 * diff.T @ self.inv_obs_cov @ diff
+        cost = prior_cost + obs_cost
+        return cost
+
+    def run_mcmc(self, n_samples: int) -> np.ndarray:
+        """
+        Runs the MCMC sampling based on the prior and the simulated data.
+        """
+        if hasattr(self.prior, "mean"):
+            initial_value = np.array(self.prior.mean)
+        else:
+            initial_value = min_vals + 0.5 * (max_vals - min_vals)
+
+        if len(initial_value) != 9:
+            initial_value = np.concatenate((initial_value, [0.5, 0.5]))
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        # initial_value = np.array(self.x.copy())[posns]
+        trans_vector = (max_vals - min_vals) / 100.0
+        self.posterior_samples = np.array(
+            list(
+                generate_samples(
+                    initial_value, n_samples, self.cost_function, trans_vector
+                )
+            )
+        )
+        parameter_names = param_names + ["psoil", "rsoil"]
+        fname_out = (
+            f"{dt.datetime.now().isoformat().replace(':', '-')}"
+            + "_posterior_samples.npz"
+        )
+        np.savez(
+            fname_out,
+            posterior_samples=self.posterior_samples,
+            parameter_names=parameter_names,
+        )
+        print(f"Saved posterior samples to {fname_out}")
+
+    def plot_posterior(self, output_panel: widgets.Output) -> None:
+        """
+        Visualizes the results in two panels: Observations and Parameters.
+        """
+        prior_samples = sample_prior_distribution(
+            self.prior.name, n_samples=300
+        )
+        posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
+        x_mode, x_samples = modal_and_random_samples(
+            self.posterior_samples, 100
+        )
+        this_x = np.array(self.x.copy())
+        this_x[posns] = x_mode
+        rho_canopy_sim_tmp = simulate_spectral_reflectance(
+            this_x, cov_matrix=None
+        )
+        _, rho_canopy_sim_tmp = integrate_spectral_reflectance(
+            rho_canopy_sim_tmp, self.srf
+        )
+
+        rho_canopy_sim = [rho_canopy_sim_tmp]
+        for i in range(x_samples.shape[0]):
+            this_x[posns] = x_mode
+            rho_canopy_sim_tmp = simulate_spectral_reflectance(
+                this_x, cov_matrix=None
+            )
+            _, rho_canopy_sim_tmp = integrate_spectral_reflectance(
+                rho_canopy_sim_tmp, self.srf
+            )
+
+            rho_canopy_sim.append(rho_canopy_sim_tmp)
+
+        visualize_panels_insitu(
+            self.wvs,
+            self.meas_refl,
             self.posterior_samples,
             rho_canopy_sim,
             output_panel,
