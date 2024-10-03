@@ -436,7 +436,24 @@ class BiophysicalRetrievalInSitu:
         self.wvs = wvs
         self.srf = srf
         self.meas_refl = meas_refl
-        # NOTE Need to do something about sza, vza and raa
+        x = [
+            0,  # parameters["N"],  # 0
+            0,  # parameters["Cab"],  # 1
+            0,  # parameters["Cab"] * 0.25,  # 2
+            0,  # 0.0,  # 3
+            0,  # parameters["Cbrown"],  # 4
+            0,  # parameters["Cw"],  # 5
+            0,  # parameters["Cm"],  # 6
+            0,  # parameters["LAI"],  # 7
+            0,  # parameters["ALA"],  # 8
+            0,  # parameters["psoil"],  # 9
+            0,  # parameters["rsoil"],  # 10
+            0.01,
+            sza,
+            vza,
+            raa,
+        ]
+        self.x = np.array(x)
 
     def cost_function(self, x: np.ndarray) -> float:
         """
@@ -448,7 +465,7 @@ class BiophysicalRetrievalInSitu:
         Returns:
             float: The computed cost value.
         """
-        x_full = np.array(self.x.copy())
+        x_full = self.x * 1.0
         # N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown'
         # posns = np.array([0, 1, 4, 5, 6, 7, 8, 9, 10])
         posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
@@ -509,7 +526,7 @@ class BiophysicalRetrievalInSitu:
         x_mode, x_samples = modal_and_random_samples(
             self.posterior_samples, 100
         )
-        this_x = np.array(self.x.copy())
+        this_x = self.x * 1.0
         this_x[posns] = x_mode
         rho_canopy_sim_tmp = simulate_spectral_reflectance(
             this_x, cov_matrix=None
