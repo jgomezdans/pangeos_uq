@@ -11,6 +11,7 @@ import pandas as pd
 from IPython.display import display
 import seaborn as sns
 from scipy import stats
+import scipy.sparse as sp
 
 from typing import Tuple
 
@@ -21,7 +22,7 @@ atmospheric_parameters = namedtuple(
 # We define min and max values for the parameters in a single place
 # order is 'N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown', 'psoil', 'rsoil'
 min_vals = np.array([1.1, 5, 0.001, 0.001, 0.01, 0, 0, 0, 0])
-max_vals = np.array([2.9, 100, 0.03, 0.06, 8, 90, 1, 1, 1])
+max_vals = np.array([3.5, 150, 0.06, 0.06, 8, 90, 1, 1, 1])
 
 
 with importlib.resources.path(
@@ -60,6 +61,7 @@ def normal_prior_func(
         # prior from arc is N', 'cab', 'cm', 'cw', 'lai', 'ala', 'cbrown'
         normal_prior_func.mean = (min_vals + max_vals) / 2.0
         normal_prior_func.name = stage
+
         if np.any(x < min_vals) or np.any(x > max_vals):
             return -np.inf
         else:
@@ -430,7 +432,8 @@ class BiophysicalRetrievalInSitu:
         if meas_uncertainty.ndim == 1:
             # We only get standard deviations, assume diagonal
             # observational uncertainty matrix
-            self.inv_obs_cov(np.eye(n_bands) / meas_uncertainty**2)
+            # Use a sparse matrix for efficiency
+            self.inv_obs_cov = sp.diags(1.0 / meas_uncertainty**2)
         else:
             self.inv_obs_cov = np.linalg.inv(meas_uncertainty)
         self.wvs = wvs
@@ -454,6 +457,7 @@ class BiophysicalRetrievalInSitu:
             raa,
         ]
         self.x = np.array(x)
+        self.prior = prior
 
     def cost_function(self, x: np.ndarray) -> float:
         """
@@ -472,6 +476,7 @@ class BiophysicalRetrievalInSitu:
         x_full[posns] = x
         prior_cost = self.prior(x)
         if np.isneginf(prior_cost):
+            self.cost_values.append(np.nan)
             return -np.inf
         rho_canopy_sim = simulate_spectral_reflectance(x_full, cov_matrix=None)
         _, rho_canopy_sim = integrate_spectral_reflectance(
@@ -480,6 +485,7 @@ class BiophysicalRetrievalInSitu:
         diff = self.meas_refl - rho_canopy_sim
         obs_cost = -0.5 * diff.T @ self.inv_obs_cov @ diff
         cost = prior_cost + obs_cost
+        self.cost_values.append(cost)
         return cost
 
     def run_mcmc(self, n_samples: int) -> np.ndarray:
@@ -496,6 +502,7 @@ class BiophysicalRetrievalInSitu:
         # posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         # initial_value = np.array(self.x.copy())[posns]
         trans_vector = (max_vals - min_vals) / 100.0
+        self.cost_values = []
         self.posterior_samples = np.array(
             list(
                 generate_samples(
@@ -522,6 +529,11 @@ class BiophysicalRetrievalInSitu:
         # prior_samples = sample_prior_distribution(
         #     self.prior.name, n_samples=300
         # )
+        fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(12, 4))
+        axs = axs.flatten()
+        axs[0].plot(self.cost_values, "k,")
+        axs[0].set_ylabel("Cost funciton val.")
+        axs[0].set_xlabel("Iteration #")
         posns = np.array([0, 1, 6, 5, 7, 8, 4, 9, 10])
         x_mode, x_samples = modal_and_random_samples(
             self.posterior_samples, 100
@@ -546,6 +558,12 @@ class BiophysicalRetrievalInSitu:
             )
 
             rho_canopy_sim.append(rho_canopy_sim_tmp)
+
+        axs[1].plot(self.wvs, self.meas_refl, "-", label="Measured")
+        axs[1].plot(self.wvs, rho_canopy_sim[0], "-", label="Posterior mode")
+        axs[1].legend(loc="best", frameon=False)
+        for y in rho_canopy_sim[1:]:
+            axs[1].plot(self.wvs, y, c="0.5", lw=0.5, alpha=0.5)
 
         # visualize_panels_insitu(
         #     self.wvs,
