@@ -4,7 +4,7 @@ PANGEOS Uncertainty Quantification training
 
 __author__ = """Jose Gomez-Dans"""
 __email__ = "jose.gomez-dans@kcl.ac.uk"
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 import importlib.resources
 import numpy as np
 from .prosail_funcs import call_prosail  # noqa F401
